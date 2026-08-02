@@ -28,6 +28,9 @@ namespace tarkov_settings
         public double WhiteStabilizer { get; set; } = 0;
         public bool IsDynamicAdaptive { get; set; } = false;
 
+        // 실시간 동적 보상 수치(0.0 ~ 1.0) 공개 프로퍼티
+        public float CurrentDynamicBoost => _currentDynamicBoost;
+
         #region Singleton Pattern implement
         private static readonly Lazy<ColorController> instance =
             new Lazy<ColorController>(() => new ColorController());
@@ -87,6 +90,7 @@ namespace tarkov_settings
 
         public void ApplyColorSettings(bool reset = false)
         {
+            // 리셋이 아니고, 타르코프 게임이 포커스되어 있지 않다면 모니터 색상 변경 안 함
             if (!reset && !ProcessMonitor.Instance.IsTargetFocused)
             {
                 return;
@@ -154,6 +158,7 @@ namespace tarkov_settings
                 {
                     float targetBoost = _screenAnalyzer.AnalyzeLightRatio(this.WhiteStabilizer);
 
+                    // 비대칭 보간 (Fast Attack 60% / Smooth Release 20%)
                     if (targetBoost > _currentDynamicBoost)
                     {
                         _currentDynamicBoost = (_currentDynamicBoost * 0.4f) + (targetBoost * 0.6f);
@@ -195,8 +200,9 @@ namespace tarkov_settings
                 }
             }
         }
+
         /// <summary>
-        /// 단조 증가(Monotonic Increase)가 보장되어 밝기 역전 현상이 완전히 차단된 256 LUT 연산 함수
+        /// 단조 증가 블랙 발굴 + 소프트 니 상한선 캡(Soft Knee Cap) 화이트 압축이 통합된 256 LUT 연산 함수
         /// </summary>
         private static ushort[] CalculateLUT(
             double brightness,
@@ -227,6 +233,12 @@ namespace tarkov_settings
             double effectiveBlack = Math.Min(baseBlack + (powerBoost * 0.85), 1.0);
             double effectiveWhite = Math.Min(baseWhite + (powerBoost * 0.60), 1.0);
 
+            // [소프트 니 상한선 캡 파라미터 계산]
+            // Y_cap  : 눈뽕 최대 상한선 (100 설정 시 1.0 -> 0.70, 즉 RGB 255 -> 178)
+            // T_knee : 미드톤 원본 보존 문턱값 (100 설정 시 1.0 -> 0.50, 즉 RGB 128 이하 100% 원본 보존)
+            double Y_cap = 1.0 - (effectiveWhite * 0.30);
+            double T_knee = 1.0 - (effectiveWhite * 0.50);
+
             var result = new ushort[dataPoints];
             for (var i = 0; i < result.Length; i++)
             {
@@ -234,18 +246,24 @@ namespace tarkov_settings
                 factor = Math.Pow(factor, 1 / gamma);
                 factor = Math.Min(Math.Max(factor, 0), 1);
 
-                // [개선 1] 토 앵커 제거 및 단조 증가 블랙 곡선 적용 (f'(x) >= 0.3 보장으로 밝기 역전 차단)
+                // 1. 단조 증가 블랙 스태빌라이저 (암부 발굴, 밝기 역전 현상 차단)
                 if (effectiveBlack > 0)
                 {
                     double blackWeight = Math.Pow(1.0 - factor, 2.0);
                     factor += (effectiveBlack * 0.35 * blackWeight);
                 }
 
-                // [개선 2] 단조 감소 화이트 곡선 적용 (밝기 역전 차단)
+                // 2. [소프트 니 상한선 캡] 화이트 스태빌라이저
                 if (effectiveWhite > 0)
                 {
-                    double whiteWeight = Math.Pow(factor, 2.0);
-                    factor -= (effectiveWhite * 0.30 * whiteWeight);
+                    if (factor > T_knee)
+                    {
+                        // T_knee 초과 영역만 2차 곡선(2t - t^2)으로 부드럽게 상한선 캡 아래로 억제
+                        double t = (factor - T_knee) / (1.0 - T_knee);
+                        double compressedPart = (2.0 * t) - (t * t);
+                        factor = T_knee + (Y_cap - T_knee) * compressedPart;
+                    }
+                    // factor <= T_knee 지점은 factor 변환율 0.00% (미드톤 및 어둠 영역 100% 원본 완전 보존!)
                 }
 
                 factor = Math.Min(Math.Max(factor, 0), 1);
@@ -253,6 +271,7 @@ namespace tarkov_settings
             }
             return result;
         }
+
         public void ResetDVL()
         {
             try
