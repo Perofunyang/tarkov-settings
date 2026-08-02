@@ -28,8 +28,8 @@ namespace tarkov_settings
                     float distX = Math.Abs(x - 15.5f) / 15.5f;
                     float distY = Math.Abs(y - 15.5f) / 15.5f;
 
-                    // [개선] 선형 거리 가중치 적용 (중앙 1.0배 -> 중간 영역 2.0배 -> 측면 외곽 3.0배)
-                    float weight = 1.0f + (distX * 2.0f) + (distY * 0.5f);
+                    // [개선] 측면 가중치 대폭 상향 (중앙 1.0배 -> 측면 외곽 최대 5.0배)
+                    float weight = 1.0f + (distX * 4.0f) + (distY * 1.0f);
 
                     _spatialWeights[x, y] = weight;
                     _totalMaxWeight += weight;
@@ -37,9 +37,6 @@ namespace tarkov_settings
             }
         }
 
-        /// <summary>
-        /// 화이트 스태빌라이저 수치에 따라 광원 감지 임계값을 동적으로 보정하여 광원 비율을 계산합니다.
-        /// </summary>
         public float AnalyzeLightRatio(double whiteStabilizer = 0)
         {
             try
@@ -87,7 +84,8 @@ namespace tarkov_settings
                     }
                 }
 
-                float ratio = weightedBlindingSum / (_totalMaxWeight * 0.25f);
+                // [개선] 감지 모수 분모를 10%로 축소하여 구석의 작은 불빛에도 100% 풀 부스트 발동
+                float ratio = weightedBlindingSum / (_totalMaxWeight * 0.10f);
                 return Math.Min(ratio, 1.0f);
             }
             catch
