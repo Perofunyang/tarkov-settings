@@ -195,9 +195,8 @@ namespace tarkov_settings
                 }
             }
         }
-
         /// <summary>
-        /// 삼중 동적 제어 및 6차 고차 곡선 연산 함수
+        /// 단조 증가(Monotonic Increase)가 보장되어 밝기 역전 현상이 완전히 차단된 256 LUT 연산 함수
         /// </summary>
         private static ushort[] CalculateLUT(
             double brightness,
@@ -209,7 +208,6 @@ namespace tarkov_settings
         {
             const int dataPoints = 256;
 
-            // [개선 1] 반응 곡선을 1.2승으로 변경하여 빠른 동적 상승 반응 유도
             float powerBoost = (float)Math.Pow(dynamicBoost, 1.2);
 
             double effectiveContrast = contrast - (powerBoost * 0.15);
@@ -226,9 +224,7 @@ namespace tarkov_settings
             double baseBlack = Math.Min(Math.Max(blackStabilizer, 0), 100) / 100.0;
             double baseWhite = Math.Min(Math.Max(whiteStabilizer, 0), 100) / 100.0;
 
-            // [개선 2] 동적 블랙 상승 상한 확대 (+0.75 -> +0.85)
             double effectiveBlack = Math.Min(baseBlack + (powerBoost * 0.85), 1.0);
-
             double effectiveWhite = Math.Min(baseWhite + (powerBoost * 0.60), 1.0);
 
             var result = new ushort[dataPoints];
@@ -238,20 +234,18 @@ namespace tarkov_settings
                 factor = Math.Pow(factor, 1 / gamma);
                 factor = Math.Min(Math.Max(factor, 0), 1);
 
-                // 블랙 스태빌라이저 (토 앵커 삼차 곡선)
+                // [개선 1] 토 앵커 제거 및 단조 증가 블랙 곡선 적용 (f'(x) >= 0.3 보장으로 밝기 역전 차단)
                 if (effectiveBlack > 0)
                 {
-                    double blackWeight = 4.0 * factor * Math.Pow(1.0 - factor, 3);
-                    // [개선 3] 암부 끌어올리기 곱셈 계수 상향 (0.45 -> 0.70)
-                    factor += (effectiveBlack * 0.70 * blackWeight);
+                    double blackWeight = Math.Pow(1.0 - factor, 2.0);
+                    factor += (effectiveBlack * 0.35 * blackWeight);
                 }
 
-                // 화이트 스태빌라이저 (선택성 극대화: factor^6 고차 곡선 적용!)
+                // [개선 2] 단조 감소 화이트 곡선 적용 (밝기 역전 차단)
                 if (effectiveWhite > 0)
                 {
-                    // [핵심 개선 4] factor^6 고차 곡선으로 중간 톤은 100% 보존하고 오직 극단적 광원(210~255)만 핀포인트 억제!
-                    double whiteWeight = Math.Pow(factor, 6.0);
-                    factor -= (effectiveWhite * 0.50 * whiteWeight);
+                    double whiteWeight = Math.Pow(factor, 2.0);
+                    factor -= (effectiveWhite * 0.30 * whiteWeight);
                 }
 
                 factor = Math.Min(Math.Max(factor, 0), 1);
@@ -259,7 +253,6 @@ namespace tarkov_settings
             }
             return result;
         }
-
         public void ResetDVL()
         {
             try
