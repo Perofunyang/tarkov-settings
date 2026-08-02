@@ -1,9 +1,7 @@
 # tarkov-settings
-![screenshot](./1.png)
+![screenshot](./ScreenSample.png)
 
-[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fincheon-kim%2Ftarkov-settings&count_bg=%238C8C8C&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=true)](https://hits.seeyoufarm.com)
-
-## [->**DOWNLOAD Latest**<-](https://github.com/incheon-kim/tarkov-settings/releases/latest)
+## [->**DOWNLOAD Latest**<-](https://github.com/Perofunyang/tarkov-settings/releases/latest)
 
 Automatically change color settings for [Escape from Tarkov](https://escapefromtarkov.com).
 
@@ -25,7 +23,8 @@ You can change any of the following color settings:
 2. Contrast
 3. Gamma
 4. Digital Vibrance Control (aka. Saturation)
-5. Only affects display while EFT window is focussed (It also prevents **sudden flash during Alt-tabbing**)
+5. Blakc & White Stabilizer
+6. Only affects display while EFT window is focussed (It also prevents **sudden flash during Alt-tabbing**)
 
 ## How to Use
 1. Open application (SmartGuard might prevent opening as it's not signed)

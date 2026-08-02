@@ -27,7 +27,11 @@ namespace tarkov_settings
 
         public static void UnHook()
         {
-            UnhookWinEvent(m_hhook);
+            if (m_hhook != IntPtr.Zero)
+            {
+                UnhookWinEvent(m_hhook);
+                m_hhook = IntPtr.Zero;
+            }
         }
 
         #region Win32 API Calls
@@ -43,13 +47,22 @@ namespace tarkov_settings
         [DllImport("user32.dll", SetLastError = true)]
         static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
         #endregion
+
+        // [개선 1] using 문을 사용하여 Process 객체 리소스를 사용 즉시 해제 (메모리 누수 및 프레임 드랍 방지)
         public static string GetActiveWindowTitle()
         {
             try
             {
                 IntPtr handle = GetForegroundWindow();
-                uint threadID = GetWindowThreadProcessId(handle, out uint processID);
-                return Process.GetProcessById(Convert.ToInt32(processID)).ProcessName;
+                if (handle == IntPtr.Zero) return null;
+
+                GetWindowThreadProcessId(handle, out uint processID);
+                if (processID == 0) return null;
+
+                using (var proc = Process.GetProcessById(Convert.ToInt32(processID)))
+                {
+                    return proc.ProcessName;
+                }
             }
             catch
             {
@@ -57,6 +70,7 @@ namespace tarkov_settings
             }
         }
     }
+
     class ProcessMonitor
     {
         private NativeMethods.WinEventDelegate processHook;
@@ -65,17 +79,16 @@ namespace tarkov_settings
 
         private HashSet<string> pTargets = new HashSet<string>();
 
+        // [개선 2] 포커스 상태 추적 변수 (불필요한 중복 GDI/GPU 호출 방지)
+        private bool _isTargetFocused = false;
+        // [추가] 현재 타르코프 게임이 활성화되어 있는지 여부를 외부에서 확인하는 프로퍼티
+        public bool IsTargetFocused => _isTargetFocused;
+
         #region Singleton Pattern implement
         private static readonly Lazy<ProcessMonitor> instance =
             new Lazy<ProcessMonitor>(() => new ProcessMonitor());
 
-        public static ProcessMonitor Instance
-        {
-            get
-            {
-                return instance.Value;
-            }
-        }
+        public static ProcessMonitor Instance => instance.Value;
         #endregion
 
         public MainForm Parent { get; set; }
@@ -84,7 +97,10 @@ namespace tarkov_settings
 
         public void Add(string process)
         {
-            this.pTargets.Add(process);
+            if (!string.IsNullOrEmpty(process))
+            {
+                this.pTargets.Add(process.ToLower());
+            }
         }
 
         public void Init()
@@ -102,25 +118,64 @@ namespace tarkov_settings
          */
         public void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
         {
-            Console.WriteLine("Running Tasks : {0}", GetWorkingThreads());
-            Console.WriteLine("Focused Process : {0}", NativeMethods.GetActiveWindowTitle());
+            // [개선 3] 폼이 파괴되었거나(Disposed) 닫히는 중이면 작업 안함 (튕김 방지)
+            if (Parent == null || Parent.IsDisposed || !Parent.IsHandleCreated)
+                return;
 
-            if (this.pTargets.Contains(NativeMethods.GetActiveWindowTitle().ToLower()) && Parent.IsEnabled)
+            if (Parent.InvokeRequired)
             {
-                Console.WriteLine("[pMonitor] Target Process is focused");
-
-                var (b, c, g, dvl) = Parent.GetColorValue();
-                cController.ChangeColorRamp(brightness: b,
-                                            contrast: c,
-                                            gamma: g,
-                                            reset: false);
-                cController.DVL = dvl;
+                try
+                {
+                    Parent.BeginInvoke(new Action(() => OnFocusChangedInternal()));
+                }
+                catch (ObjectDisposedException) { }
             }
             else
             {
-                Console.WriteLine("[pMonitor] Target Process is not focused");
-                cController.ChangeColorRamp(reset: true);
-                cController.ResetDVL();
+                OnFocusChangedInternal();
+            }
+        }
+
+        // [개선 4] 상태가 전환될 때만 1회 호출되도록 상태 제어 로직 적용
+        private void OnFocusChangedInternal()
+        {
+            if (Parent == null || Parent.IsDisposed) return;
+
+            string activeTitle = NativeMethods.GetActiveWindowTitle();
+            bool isTargetNow = !string.IsNullOrEmpty(activeTitle) &&
+                               this.pTargets.Contains(activeTitle.ToLower()) &&
+                               Parent.IsEnabled;
+
+            // 1. 게임 창으로 '들어왔을 때' (False -> True 일 때만 1회 실행)
+            if (isTargetNow)
+            {
+                if (!_isTargetFocused)
+                {
+                    Console.WriteLine("[pMonitor] Target Process IS focused");
+                    _isTargetFocused = true;
+
+                    var (b, c, g, dvl) = Parent.GetColorValue();
+
+                    // [추가] 블랙 스태빌라이저 및 동적 적응형 수치 동기화
+                    cController.BlackStabilizer = Parent.BlackStabilizer;
+                    cController.WhiteStabilizer = Parent.WhiteStabilizer;
+                    cController.IsDynamicAdaptive = Parent.IsDynamicAdaptive;
+
+                    cController.ChangeColorRamp(brightness: b, contrast: c, gamma: g, reset: false);
+                    cController.DVL = dvl;
+                }
+            }
+            // 2. 게임 창에서 '나갔을 때' (True -> False 일 때만 1회 실행)
+            else
+            {
+                if (_isTargetFocused)
+                {
+                    Console.WriteLine("[pMonitor] Target Process is NOT focused");
+                    _isTargetFocused = false;
+
+                    cController.ChangeColorRamp(reset: true);
+                    cController.ResetDVL();
+                }
             }
         }
 
@@ -132,6 +187,8 @@ namespace tarkov_settings
             Console.WriteLine("[pMonitor] Remove Delegates");
             NativeMethods.dele -= processHook;
             NativeMethods.UnHook();
+
+            _isTargetFocused = false;
 
             Console.WriteLine("[pMonitor] Resetting Color");
             cController.Close();
