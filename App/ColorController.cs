@@ -154,7 +154,6 @@ namespace tarkov_settings
                 {
                     float targetBoost = _screenAnalyzer.AnalyzeLightRatio(this.WhiteStabilizer);
 
-                    // [핵심 1: 비대칭 보간 속도] 광원 유입 시 빠른 대응(60%), 소멸 시 부드러운 원복(20%)
                     if (targetBoost > _currentDynamicBoost)
                     {
                         _currentDynamicBoost = (_currentDynamicBoost * 0.4f) + (targetBoost * 0.6f);
@@ -210,12 +209,10 @@ namespace tarkov_settings
         {
             const int dataPoints = 256;
 
-            // [핵심 2: 비선형 제곱 보상] 광원이 강해질수록 보상 폭을 제곱으로 폭발적 가산
             float quadraticBoost = dynamicBoost * dynamicBoost;
 
-            // [핵심 3-A: 동적 대비 감소] 광원 유입 시 대비(Contrast)를 실시간으로 다운시켜 명암 극단성 완화
             double effectiveContrast = contrast - (quadraticBoost * 0.12);
-            effectiveContrast = Math.Max(effectiveContrast, 0.1); // 최소 대비 보장
+            effectiveContrast = Math.Max(effectiveContrast, 0.1);
 
             effectiveContrast = (Math.Min(Math.Max(effectiveContrast, 0), 1) - 0.5) * 2;
             brightness = (Math.Min(Math.Max(brightness, 0), 1) - 0.5) * 2;
@@ -228,10 +225,9 @@ namespace tarkov_settings
             double baseBlack = Math.Min(Math.Max(blackStabilizer, 0), 100) / 100.0;
             double baseWhite = Math.Min(Math.Max(whiteStabilizer, 0), 100) / 100.0;
 
-            // [핵심 3-B: 동적 블랙 상승] 최대 +0.6 가산
-            double effectiveBlack = Math.Min(baseBlack + (quadraticBoost * 0.6), 1.0);
+            // [개선 1] 동적 블랙 상승 상한 확대 (+0.6 -> +0.75)
+            double effectiveBlack = Math.Min(baseBlack + (quadraticBoost * 0.75), 1.0);
 
-            // [핵심 3-C: 동적 화이트 상승] 눈뽕 억제를 위해 최대 +0.5 가산
             double effectiveWhite = Math.Min(baseWhite + (quadraticBoost * 0.5), 1.0);
 
             var result = new ushort[dataPoints];
@@ -252,7 +248,8 @@ namespace tarkov_settings
                 if (effectiveWhite > 0)
                 {
                     double whiteWeight = Math.Pow(factor, 2);
-                    factor -= (effectiveWhite * 0.25 * whiteWeight);
+                    // [개선 2] 화이트 눌러주기 계수 확대 (0.25 -> 0.45)
+                    factor -= (effectiveWhite * 0.45 * whiteWeight);
                 }
 
                 factor = Math.Min(Math.Max(factor, 0), 1);
