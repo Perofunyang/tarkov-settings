@@ -38,13 +38,38 @@ namespace tarkov_settings
         }
 
         /// <summary>
+        /// Display.Primary 장치 이름(\\.\DISPLAY2 등)에 해당하는 올바른 Screen 객체를 찾아 반환합니다.
+        /// </summary>
+        private Screen GetTargetScreen()
+        {
+            try
+            {
+                string targetDevice = Display.Primary;
+                if (!string.IsNullOrEmpty(targetDevice))
+                {
+                    foreach (Screen screen in Screen.AllScreens)
+                    {
+                        if (screen.DeviceName.Equals(targetDevice, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return screen;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            // 찾지 못할 경우 기본 메인 모니터 반환
+            return Screen.PrimaryScreen;
+        }
+
+        /// <summary>
         /// 타르코프 상인/보관함/메인 메뉴 UI 화면인지 0.001ms 만에 초고속 스캔합니다.
         /// </summary>
         private bool IsTarkovMenuUI(byte[] rgbValues, int stride)
         {
             try
             {
-                // 1. 하단 메뉴 바 스캔 (y = 31 행의 샘플 픽셀들이 어두운 무채색 패널인지 확인)
+                // 하단 메뉴 바 스캔 (y = 31)
                 int bottomRowOffset = 31 * stride;
                 int darkBottomPixels = 0;
 
@@ -55,14 +80,13 @@ namespace tarkov_settings
                     byte g = rgbValues[i + 1];
                     byte r = rgbValues[i + 2];
 
-                    // 타르코프 하단 메뉴 바 특유의 어두운 무채색 회색 (RGB 35 이하)
                     if (r <= 35 && g <= 35 && b <= 35 && Math.Abs(r - g) <= 12 && Math.Abs(g - b) <= 12)
                     {
                         darkBottomPixels++;
                     }
                 }
 
-                // 2. 상단 헤더 바 스캔 (y = 0 행의 샘플 픽셀들)
+                // 상단 헤더 바 스캔 (y = 0)
                 int topRowOffset = 0 * stride;
                 int darkTopPixels = 0;
 
@@ -79,7 +103,6 @@ namespace tarkov_settings
                     }
                 }
 
-                // 상단과 하단 영역이 동시에 타르코프 메뉴 UI 패턴과 일치하면 메뉴/상인 화면으로 판별!
                 return (darkBottomPixels >= 7 && darkTopPixels >= 7);
             }
             catch
@@ -92,8 +115,11 @@ namespace tarkov_settings
         {
             try
             {
-                var screenBounds = Screen.PrimaryScreen.Bounds;
+                // [핵심 개선] 드롭다운에서 선택된 대상 모니터(Display.Primary)의 정확한 화면 좌표 감지
+                Screen targetScreen = GetTargetScreen();
+                Rectangle screenBounds = targetScreen.Bounds;
 
+                // 대상 모니터 위치(screenBounds.X, Y)에서 화면 캡처
                 _gfx.CopyFromScreen(
                     screenBounds.X, screenBounds.Y, 0, 0,
                     new Size(screenBounds.Width, screenBounds.Height),
@@ -112,7 +138,7 @@ namespace tarkov_settings
                 Marshal.Copy(data.Scan0, rgbValues, 0, bytes);
                 _bmp.UnlockBits(data);
 
-                // [핵심] 상인/보관함/메인 메뉴 UI 감지 시 동적 제어 즉시 끄기 (0.0 반환)
+                // 상인/메뉴 UI 감지 시 동적 제어 끄기
                 if (IsTarkovMenuUI(rgbValues, stride))
                 {
                     return 0.0f;
