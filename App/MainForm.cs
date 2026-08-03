@@ -17,11 +17,14 @@ namespace tarkov_settings
         // [핵심] 디스크 과부하 방지를 위한 디바운싱(지연 저장) 타이머
         private System.Windows.Forms.Timer _saveDebounceTimer;
 
+        // [추가] 트레이 메뉴에 추가될 동적 적응형 메뉴 항목
+        private ToolStripMenuItem _trayDynamicAdaptiveMenuItem;
+
         public MainForm()
         {
             InitializeComponent();
 
-            // 1초 지연 저장 타이머 초기화
+            // 지연 저장 타이머 초기화 (1초)
             _saveDebounceTimer = new System.Windows.Forms.Timer { Interval = 1000 };
             _saveDebounceTimer.Tick += (s, e) =>
             {
@@ -54,6 +57,20 @@ namespace tarkov_settings
             cController.IsDynamicAdaptive = IsDynamicAdaptive;
             #endregion
 
+            // [추가] 트레이 우클릭 메뉴 상단에 Dynamic Adaptive Boost 토글 메뉴 동적 생성 및 연결
+            _trayDynamicAdaptiveMenuItem = new ToolStripMenuItem("Dynamic Adaptive Boost")
+            {
+                CheckOnClick = true,
+                Checked = IsDynamicAdaptive
+            };
+            _trayDynamicAdaptiveMenuItem.CheckedChanged += TrayDynamicAdaptiveMenuItem_CheckedChanged;
+
+            if (this.trayMenuStrip != null)
+            {
+                this.trayMenuStrip.Items.Insert(0, _trayDynamicAdaptiveMenuItem);
+                this.trayMenuStrip.Items.Insert(1, new ToolStripSeparator()); // 구분선
+            }
+
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             this.Text = String.Format("Tarkov Settings {0}", version);
             _ = new UpdateNotifier(version);
@@ -85,7 +102,18 @@ namespace tarkov_settings
         }
 
         /// <summary>
-        /// 컨트롤 조작 시 타이머를 리셋하여 마우스 드래그가 끝난 후 0.5초 뒤 저장하도록 예약
+        /// 트레이 메뉴에서 동적 적응형 항목 클릭 시 UI 체크박스 동기화
+        /// </summary>
+        private void TrayDynamicAdaptiveMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (DynamicAdaptiveCheckBox.Checked != _trayDynamicAdaptiveMenuItem.Checked)
+            {
+                DynamicAdaptiveCheckBox.Checked = _trayDynamicAdaptiveMenuItem.Checked;
+            }
+        }
+
+        /// <summary>
+        /// 컨트롤 조작 시 타이머를 리셋하여 마우스 조작이 끝난 후 지연 저장하도록 예약
         /// </summary>
         private void ScheduleSave()
         {
@@ -94,7 +122,7 @@ namespace tarkov_settings
         }
 
         /// <summary>
-        /// 실제로 settings.json 파일에 서체 저장하는 메서드
+        /// 실제로 settings.json 파일에 설정값을 저장하는 메서드
         /// </summary>
         private void SaveCurrentSettingsToDisk()
         {
@@ -213,6 +241,8 @@ namespace tarkov_settings
             {
                 WhiteStabilizerBar.Value = 0;
             }
+
+            ScheduleSave(); // 라벨 더블클릭 리셋 시 저장
         }
 
         private void TrackBar_ValueChanged(object sender, EventArgs e)
@@ -248,13 +278,21 @@ namespace tarkov_settings
                 ColorController.Instance.ApplyColorSettings();
             }
 
-            ScheduleSave(); // 드래그 중에는 예약만
+            ScheduleSave(); // 드래그 완료 후 1초 뒤 디스크 저장
         }
 
         private void DynamicAdaptiveCheckBox_CheckedChanged(object sender, EventArgs e)
         {
             ColorController.Instance.IsDynamicAdaptive = DynamicAdaptiveCheckBox.Checked;
             ColorController.Instance.ApplyColorSettings();
+
+            // 트레이 우클릭 메뉴의 체크 상태 양방향 동기화
+            if (_trayDynamicAdaptiveMenuItem != null && _trayDynamicAdaptiveMenuItem.Checked != DynamicAdaptiveCheckBox.Checked)
+            {
+                _trayDynamicAdaptiveMenuItem.Checked = DynamicAdaptiveCheckBox.Checked;
+            }
+
+            ScheduleSave(); // 체크박스 변경 시 저장
         }
 
         private void DisplayCombo_SelectedValueChanged(object sender, EventArgs e)
@@ -266,6 +304,14 @@ namespace tarkov_settings
             {
                 DisplayCombo.SelectedIndex = DisplayCombo.FindString(Display.Primary);
             }
+
+            ScheduleSave(); // 디스플레이 변경 시 저장
+        }
+
+        private void CheckOnMinimizeToTray(object sender, EventArgs e)
+        {
+            this.minimizeOnStart = this.minimizeStartCheckBox.Checked;
+            ScheduleSave(); // '시작 시 최소화' 변경 시 저장
         }
         #endregion
 
@@ -277,20 +323,8 @@ namespace tarkov_settings
 
         private void ExitFormClicked(object sender, EventArgs e)
         {
-            //appSetting.brightness = Brightness;
-            //appSetting.contrast = Contrast;
-            //appSetting.gamma = Gamma;
-            //appSetting.saturation = DVL;
-            //appSetting.blackStabilizer = BlackStabilizer;
-            //appSetting.whiteStabilizer = WhiteStabilizer;
-            //appSetting.isDynamicAdaptive = IsDynamicAdaptive;
-            //appSetting.display = (string)DisplayCombo.SelectedItem;
-            //appSetting.minimizeOnStart = minimizeOnStart;
-            //appSetting.Save();
-
             _saveDebounceTimer?.Stop();
             SaveCurrentSettingsToDisk(); // 종료 시 즉시 저장
-
 
             Application.Exit();
         }
@@ -312,11 +346,6 @@ namespace tarkov_settings
                 Console.WriteLine("[mainForm] Closing pMonitor");
                 pMonitor.Close();
             }
-        }
-
-        private void CheckOnMinimizeToTray(object sender, EventArgs e)
-        {
-            this.minimizeOnStart = this.minimizeStartCheckBox.Checked;
         }
 
         private void label1_Click(object sender, EventArgs e)
