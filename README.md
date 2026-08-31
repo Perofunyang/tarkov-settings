@@ -60,7 +60,8 @@ You can change and configure any of the following settings:
 - [x] Process Changeability (Not only for EscapeFromTarkov)
 - [x] Change display (monitor) target
 - [x] Minimize to tray & Tray Context Menu Quick Toggle
-- [ ] Profiles / Presets
+- [x] Profiles
+- [ ] Presets
 - [ ] Hot Keys
 - [ ] EFT setting modify (Framelimit or Graphic Settings)
 

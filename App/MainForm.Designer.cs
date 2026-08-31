@@ -36,6 +36,7 @@
             this.ColorButton = new System.Windows.Forms.ToolStripButton();
             this.ColorPanel = new System.Windows.Forms.Panel();
             this.ProfileGroupBox = new System.Windows.Forms.GroupBox();
+            this.RenameProfileButton = new System.Windows.Forms.Button();
             this.profile_t1 = new System.Windows.Forms.Label();
             this.ProfileEnabledCheckBox = new System.Windows.Forms.CheckBox();
             this.ProfileComboBox = new System.Windows.Forms.ComboBox();
@@ -82,7 +83,6 @@
             this.contrastToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.gammaToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.dvlToolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.RenameProfileButton = new System.Windows.Forms.Button();
             this.layoutTablePanel.SuspendLayout();
             this.SideMenu.SuspendLayout();
             this.ColorPanel.SuspendLayout();
@@ -206,6 +206,18 @@
             this.ProfileGroupBox.TabStop = false;
             this.ProfileGroupBox.Text = "Profile";
             this.ProfileGroupBox.Enter += new System.EventHandler(this.groupBox1_Enter_1);
+            // 
+            // RenameProfileButton
+            // 
+            this.RenameProfileButton.Font = new System.Drawing.Font("Consolas", 10F);
+            this.RenameProfileButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.RenameProfileButton.Location = new System.Drawing.Point(93, 49);
+            this.RenameProfileButton.Name = "RenameProfileButton";
+            this.RenameProfileButton.Size = new System.Drawing.Size(88, 23);
+            this.RenameProfileButton.TabIndex = 25;
+            this.RenameProfileButton.Text = "이름 수정";
+            this.RenameProfileButton.UseVisualStyleBackColor = true;
+            this.RenameProfileButton.Click += new System.EventHandler(this.RenameProfileButton_Click);
             // 
             // profile_t1
             // 
@@ -688,18 +700,6 @@
             this.dvlToolTip.ShowAlways = true;
             this.dvlToolTip.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.dvlToolTip.ToolTipTitle = "Saturation";
-            // 
-            // RenameProfileButton
-            // 
-            this.RenameProfileButton.Font = new System.Drawing.Font("Consolas", 10F);
-            this.RenameProfileButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.RenameProfileButton.Location = new System.Drawing.Point(93, 49);
-            this.RenameProfileButton.Name = "RenameProfileButton";
-            this.RenameProfileButton.Size = new System.Drawing.Size(88, 23);
-            this.RenameProfileButton.TabIndex = 25;
-            this.RenameProfileButton.Text = "이름 수정";
-            this.RenameProfileButton.UseVisualStyleBackColor = true;
-            this.RenameProfileButton.Click += new System.EventHandler(this.RenameProfileButton_Click);
             // 
             // MainForm
             // 
