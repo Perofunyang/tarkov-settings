@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 
 namespace tarkov_settings
 {
@@ -9,11 +12,11 @@ namespace tarkov_settings
     {
         private const uint WINEVENT_OUTOFCONTEXT = 0;
         private const uint EVENT_SYSTEM_FOREGROUND = 3;
+        private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         public delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
         public static WinEventDelegate dele = null;
-
         private static IntPtr m_hhook;
 
         public static void SetHook()
@@ -46,9 +49,21 @@ namespace tarkov_settings
 
         [DllImport("user32.dll", SetLastError = true)]
         static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, uint processId);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern bool QueryFullProcessImageName(IntPtr hProcess, int dwFlags, [Out] StringBuilder lpExeName, ref int lpdwSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CloseHandle(IntPtr hObject);
         #endregion
 
-        // [개선 1] using 문을 사용하여 Process 객체 리소스를 사용 즉시 해제 (메모리 누수 및 프레임 드랍 방지)
+        /// <summary>
+        /// QueryFullProcessImageName API를 사용하여 권한 오류(Access Denied) 없이 모든 게임의 정확한 실행 파일명을 읽어옵니다.
+        /// </summary>
         public static string GetActiveWindowTitle()
         {
             try
@@ -59,9 +74,38 @@ namespace tarkov_settings
                 GetWindowThreadProcessId(handle, out uint processID);
                 if (processID == 0) return null;
 
-                using (var proc = Process.GetProcessById(Convert.ToInt32(processID)))
+                // [핵심] PROCESS_QUERY_LIMITED_INFORMATION 플래그로 권한 문제 완벽 해결
+                IntPtr hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processID);
+                if (hProcess != IntPtr.Zero)
                 {
-                    return proc.ProcessName;
+                    try
+                    {
+                        int capacity = 1024;
+                        StringBuilder sb = new StringBuilder(capacity);
+                        if (QueryFullProcessImageName(hProcess, 0, sb, ref capacity))
+                        {
+                            string fullPath = sb.ToString();
+                            // "C:\...\Expedition Into Darkness.exe" -> "Expedition Into Darkness"
+                            return Path.GetFileNameWithoutExtension(fullPath);
+                        }
+                    }
+                    finally
+                    {
+                        CloseHandle(hProcess);
+                    }
+                }
+
+                // 백업용 C# 레거시 방식
+                try
+                {
+                    using (var proc = Process.GetProcessById(Convert.ToInt32(processID)))
+                    {
+                        return proc.ProcessName;
+                    }
+                }
+                catch
+                {
+                    return null;
                 }
             }
             catch
@@ -74,15 +118,11 @@ namespace tarkov_settings
     class ProcessMonitor
     {
         private NativeMethods.WinEventDelegate processHook;
-
         private readonly ColorController cController = ColorController.Instance;
-
         private HashSet<string> pTargets = new HashSet<string>();
 
-        // [개선 2] 포커스 상태 추적 변수 (불필요한 중복 GDI/GPU 호출 방지)
         private bool _isTargetFocused = false;
-        // [추가] 현재 타르코프 게임이 활성화되어 있는지 여부를 외부에서 확인하는 프로퍼티
-        public bool IsTargetFocused => _isTargetFocused;
+        private System.Threading.Timer _pollTimer;
 
         #region Singleton Pattern implement
         private static readonly Lazy<ProcessMonitor> instance =
@@ -91,6 +131,7 @@ namespace tarkov_settings
         public static ProcessMonitor Instance => instance.Value;
         #endregion
 
+        public bool IsTargetFocused => _isTargetFocused;
         public MainForm Parent { get; set; }
 
         private ProcessMonitor() { }
@@ -109,16 +150,20 @@ namespace tarkov_settings
             NativeMethods.dele += processHook;
             NativeMethods.SetHook();
 
-            // Init ColorController
             cController.Init();
+
+            // [추가] 이벤트 누락 방지를 위한 0.5초 주기 안전 폴링 타이머
+            _pollTimer = new System.Threading.Timer((state) =>
+            {
+                WinEventProc(IntPtr.Zero, 0, IntPtr.Zero, 0, 0, 0, 0);
+            }, null, 500, 500);
+
+            // 시작 시점에 현재 켜진 활성 창 즉시 1회 검사
+            OnFocusChangedInternal();
         }
 
-        /**
-         * Window Focus changed Event Handler
-         */
         public void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
         {
-            // [개선 3] 폼이 파괴되었거나(Disposed) 닫히는 중이면 작업 안함 (튕김 방지)
             if (Parent == null || Parent.IsDisposed || !Parent.IsHandleCreated)
                 return;
 
@@ -136,7 +181,6 @@ namespace tarkov_settings
             }
         }
 
-        // [개선 4] 상태가 전환될 때만 1회 호출되도록 상태 제어 로직 적용
         private void OnFocusChangedInternal()
         {
             if (Parent == null || Parent.IsDisposed) return;
@@ -146,26 +190,26 @@ namespace tarkov_settings
                                this.pTargets.Contains(activeTitle.ToLower()) &&
                                Parent.IsEnabled;
 
-            // 1. 게임 창으로 '들어왔을 때' (False -> True 일 때만 1회 실행)
             if (isTargetNow)
             {
                 if (!_isTargetFocused)
                 {
-                    Console.WriteLine("[pMonitor] Target Process IS focused");
+                    Console.WriteLine("[pMonitor] Target Process IS focused : " + activeTitle);
                     _isTargetFocused = true;
 
                     var (b, c, g, dvl) = Parent.GetColorValue();
 
-                    // [추가] 블랙 스태빌라이저 및 동적 적응형 수치 동기화
                     cController.BlackStabilizer = Parent.BlackStabilizer;
                     cController.WhiteStabilizer = Parent.WhiteStabilizer;
                     cController.IsDynamicAdaptive = Parent.IsDynamicAdaptive;
 
-                    cController.ChangeColorRamp(brightness: b, contrast: c, gamma: g, reset: false);
+                    cController.ChangeColorRamp(brightness: b,
+                                                contrast: c,
+                                                gamma: g,
+                                                reset: false);
                     cController.DVL = dvl;
                 }
             }
-            // 2. 게임 창에서 '나갔을 때' (True -> False 일 때만 1회 실행)
             else
             {
                 if (_isTargetFocused)
@@ -179,26 +223,16 @@ namespace tarkov_settings
             }
         }
 
-        /**
-         * Reset to original color settings before exit
-         */
         public void Close()
         {
-            Console.WriteLine("[pMonitor] Remove Delegates");
+            _pollTimer?.Dispose();
+
             NativeMethods.dele -= processHook;
             NativeMethods.UnHook();
 
             _isTargetFocused = false;
 
-            Console.WriteLine("[pMonitor] Resetting Color");
             cController.Close();
-        }
-
-        private static int GetWorkingThreads()
-        {
-            System.Threading.ThreadPool.GetMaxThreads(out int maxThreads, out int _);
-            System.Threading.ThreadPool.GetAvailableThreads(out int availableThreads, out _);
-            return maxThreads - availableThreads;
         }
     }
 }
