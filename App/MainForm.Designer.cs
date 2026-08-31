@@ -35,6 +35,23 @@
             this.MiscsButton = new System.Windows.Forms.ToolStripButton();
             this.ColorButton = new System.Windows.Forms.ToolStripButton();
             this.ColorPanel = new System.Windows.Forms.Panel();
+            this.ProfileGroupBox = new System.Windows.Forms.GroupBox();
+            this.profile_t1 = new System.Windows.Forms.Label();
+            this.ProfileEnabledCheckBox = new System.Windows.Forms.CheckBox();
+            this.ProfileComboBox = new System.Windows.Forms.ComboBox();
+            this.DeleteProfileButton = new System.Windows.Forms.Button();
+            this.TargetProcessTextBox = new System.Windows.Forms.TextBox();
+            this.AddProfileButton = new System.Windows.Forms.Button();
+            this.StabilizerGroup = new System.Windows.Forms.GroupBox();
+            this.panel2 = new System.Windows.Forms.Panel();
+            this.WhiteStabilizerLabel = new System.Windows.Forms.Label();
+            this.WhiteStabilizerText = new System.Windows.Forms.TextBox();
+            this.WhiteStabilizerBar = new System.Windows.Forms.TrackBar();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.DynamicAdaptiveCheckBox = new System.Windows.Forms.CheckBox();
+            this.BlackStabilizerLabel = new System.Windows.Forms.Label();
+            this.BlackStabilizerText = new System.Windows.Forms.TextBox();
+            this.BlackStabilizerBar = new System.Windows.Forms.TrackBar();
             this.minimizeStartCheckBox = new System.Windows.Forms.CheckBox();
             this.DisplayCombo = new System.Windows.Forms.ComboBox();
             this.DVLGroupBox = new System.Windows.Forms.GroupBox();
@@ -65,19 +82,16 @@
             this.contrastToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.gammaToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.dvlToolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.BlackStabilizerBar = new System.Windows.Forms.TrackBar();
-            this.BlackStabilizerLabel = new System.Windows.Forms.Label();
-            this.BlackStabilizerText = new System.Windows.Forms.TextBox();
-            this.StabilizerGroup = new System.Windows.Forms.GroupBox();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.DynamicAdaptiveCheckBox = new System.Windows.Forms.CheckBox();
-            this.panel2 = new System.Windows.Forms.Panel();
-            this.WhiteStabilizerLabel = new System.Windows.Forms.Label();
-            this.WhiteStabilizerText = new System.Windows.Forms.TextBox();
-            this.WhiteStabilizerBar = new System.Windows.Forms.TrackBar();
+            this.RenameProfileButton = new System.Windows.Forms.Button();
             this.layoutTablePanel.SuspendLayout();
             this.SideMenu.SuspendLayout();
             this.ColorPanel.SuspendLayout();
+            this.ProfileGroupBox.SuspendLayout();
+            this.StabilizerGroup.SuspendLayout();
+            this.panel2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.WhiteStabilizerBar)).BeginInit();
+            this.panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.BlackStabilizerBar)).BeginInit();
             this.DVLGroupBox.SuspendLayout();
             this.DVLPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DVLBar)).BeginInit();
@@ -90,11 +104,6 @@
             this.gammaPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.GammaBar)).BeginInit();
             this.trayMenuStrip.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.BlackStabilizerBar)).BeginInit();
-            this.StabilizerGroup.SuspendLayout();
-            this.panel1.SuspendLayout();
-            this.panel2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.WhiteStabilizerBar)).BeginInit();
             this.SuspendLayout();
             // 
             // layoutTablePanel
@@ -122,7 +131,7 @@
             this.layoutTablePanel.RowCount = 1;
             this.layoutTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 18.4669F));
             this.layoutTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 81.5331F));
-            this.layoutTablePanel.Size = new System.Drawing.Size(734, 552);
+            this.layoutTablePanel.Size = new System.Drawing.Size(734, 615);
             this.layoutTablePanel.TabIndex = 0;
             // 
             // SideMenu
@@ -139,7 +148,7 @@
             this.SideMenu.Location = new System.Drawing.Point(0, 5);
             this.SideMenu.Margin = new System.Windows.Forms.Padding(0, 5, 0, 5);
             this.SideMenu.Name = "SideMenu";
-            this.SideMenu.Size = new System.Drawing.Size(76, 542);
+            this.SideMenu.Size = new System.Drawing.Size(76, 605);
             this.SideMenu.TabIndex = 1;
             this.SideMenu.Text = "colorSettings";
             // 
@@ -169,6 +178,7 @@
             // 
             // ColorPanel
             // 
+            this.ColorPanel.Controls.Add(this.ProfileGroupBox);
             this.ColorPanel.Controls.Add(this.StabilizerGroup);
             this.ColorPanel.Controls.Add(this.minimizeStartCheckBox);
             this.ColorPanel.Controls.Add(this.DisplayCombo);
@@ -177,19 +187,208 @@
             this.ColorPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.ColorPanel.Location = new System.Drawing.Point(79, 3);
             this.ColorPanel.Name = "ColorPanel";
-            this.ColorPanel.Size = new System.Drawing.Size(652, 546);
+            this.ColorPanel.Size = new System.Drawing.Size(652, 609);
             this.ColorPanel.TabIndex = 2;
+            // 
+            // ProfileGroupBox
+            // 
+            this.ProfileGroupBox.Controls.Add(this.RenameProfileButton);
+            this.ProfileGroupBox.Controls.Add(this.profile_t1);
+            this.ProfileGroupBox.Controls.Add(this.ProfileEnabledCheckBox);
+            this.ProfileGroupBox.Controls.Add(this.ProfileComboBox);
+            this.ProfileGroupBox.Controls.Add(this.DeleteProfileButton);
+            this.ProfileGroupBox.Controls.Add(this.TargetProcessTextBox);
+            this.ProfileGroupBox.Controls.Add(this.AddProfileButton);
+            this.ProfileGroupBox.Location = new System.Drawing.Point(3, 7);
+            this.ProfileGroupBox.Name = "ProfileGroupBox";
+            this.ProfileGroupBox.Size = new System.Drawing.Size(638, 82);
+            this.ProfileGroupBox.TabIndex = 0;
+            this.ProfileGroupBox.TabStop = false;
+            this.ProfileGroupBox.Text = "Profile";
+            this.ProfileGroupBox.Enter += new System.EventHandler(this.groupBox1_Enter_1);
+            // 
+            // profile_t1
+            // 
+            this.profile_t1.AutoSize = true;
+            this.profile_t1.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.profile_t1.Location = new System.Drawing.Point(281, 29);
+            this.profile_t1.Name = "profile_t1";
+            this.profile_t1.Size = new System.Drawing.Size(321, 14);
+            this.profile_t1.TabIndex = 20;
+            this.profile_t1.Text = ".exe를 뺀 영문 프로세스명을 입력하세요 (쉼표로 복수 입력 가능)";
+            this.profile_t1.Click += new System.EventHandler(this.label1_Click_1);
+            // 
+            // ProfileEnabledCheckBox
+            // 
+            this.ProfileEnabledCheckBox.AutoSize = true;
+            this.ProfileEnabledCheckBox.Font = new System.Drawing.Font("Consolas", 10F);
+            this.ProfileEnabledCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.ProfileEnabledCheckBox.Location = new System.Drawing.Point(6, 51);
+            this.ProfileEnabledCheckBox.Name = "ProfileEnabledCheckBox";
+            this.ProfileEnabledCheckBox.Size = new System.Drawing.Size(85, 21);
+            this.ProfileEnabledCheckBox.TabIndex = 24;
+            this.ProfileEnabledCheckBox.Text = "자동 활성화";
+            this.ProfileEnabledCheckBox.UseVisualStyleBackColor = true;
+            this.ProfileEnabledCheckBox.CheckedChanged += new System.EventHandler(this.ProfileEnabledCheckBox_CheckedChanged);
+            // 
+            // ProfileComboBox
+            // 
+            this.ProfileComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.ProfileComboBox.FormattingEnabled = true;
+            this.ProfileComboBox.Location = new System.Drawing.Point(6, 20);
+            this.ProfileComboBox.Name = "ProfileComboBox";
+            this.ProfileComboBox.Size = new System.Drawing.Size(175, 22);
+            this.ProfileComboBox.TabIndex = 2;
+            this.ProfileComboBox.SelectedIndexChanged += new System.EventHandler(this.ProfileComboBox_SelectedIndexChanged);
+            // 
+            // DeleteProfileButton
+            // 
+            this.DeleteProfileButton.Font = new System.Drawing.Font("Consolas", 10F);
+            this.DeleteProfileButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.DeleteProfileButton.Location = new System.Drawing.Point(187, 49);
+            this.DeleteProfileButton.Name = "DeleteProfileButton";
+            this.DeleteProfileButton.Size = new System.Drawing.Size(88, 23);
+            this.DeleteProfileButton.TabIndex = 22;
+            this.DeleteProfileButton.Text = "프로필 삭제";
+            this.DeleteProfileButton.UseVisualStyleBackColor = true;
+            this.DeleteProfileButton.Click += new System.EventHandler(this.DeleteProfileButton_Click);
+            // 
+            // TargetProcessTextBox
+            // 
+            this.TargetProcessTextBox.Location = new System.Drawing.Point(281, 49);
+            this.TargetProcessTextBox.Name = "TargetProcessTextBox";
+            this.TargetProcessTextBox.Size = new System.Drawing.Size(351, 22);
+            this.TargetProcessTextBox.TabIndex = 23;
+            this.TargetProcessTextBox.TextChanged += new System.EventHandler(this.TargetProcessTextBox_TextChanged);
+            // 
+            // AddProfileButton
+            // 
+            this.AddProfileButton.Font = new System.Drawing.Font("Consolas", 10F);
+            this.AddProfileButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.AddProfileButton.Location = new System.Drawing.Point(187, 20);
+            this.AddProfileButton.Name = "AddProfileButton";
+            this.AddProfileButton.Size = new System.Drawing.Size(88, 23);
+            this.AddProfileButton.TabIndex = 21;
+            this.AddProfileButton.Text = "새 프로필";
+            this.AddProfileButton.UseVisualStyleBackColor = true;
+            this.AddProfileButton.Click += new System.EventHandler(this.AddProfileButton_Click);
+            // 
+            // StabilizerGroup
+            // 
+            this.StabilizerGroup.Controls.Add(this.panel2);
+            this.StabilizerGroup.Controls.Add(this.panel1);
+            this.StabilizerGroup.Location = new System.Drawing.Point(3, 409);
+            this.StabilizerGroup.Name = "StabilizerGroup";
+            this.StabilizerGroup.Size = new System.Drawing.Size(490, 197);
+            this.StabilizerGroup.TabIndex = 20;
+            this.StabilizerGroup.TabStop = false;
+            this.StabilizerGroup.Text = "Stabilizer";
+            this.StabilizerGroup.Enter += new System.EventHandler(this.groupBox1_Enter);
+            // 
+            // panel2
+            // 
+            this.panel2.Controls.Add(this.WhiteStabilizerLabel);
+            this.panel2.Controls.Add(this.WhiteStabilizerText);
+            this.panel2.Controls.Add(this.WhiteStabilizerBar);
+            this.panel2.Location = new System.Drawing.Point(6, 109);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(481, 82);
+            this.panel2.TabIndex = 27;
+            // 
+            // WhiteStabilizerLabel
+            // 
+            this.WhiteStabilizerLabel.AutoSize = true;
+            this.WhiteStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.WhiteStabilizerLabel.Location = new System.Drawing.Point(20, 16);
+            this.WhiteStabilizerLabel.Name = "WhiteStabilizerLabel";
+            this.WhiteStabilizerLabel.Size = new System.Drawing.Size(119, 14);
+            this.WhiteStabilizerLabel.TabIndex = 18;
+            this.WhiteStabilizerLabel.Text = "White Stabilizer";
+            this.WhiteStabilizerLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
+            // 
+            // WhiteStabilizerText
+            // 
+            this.WhiteStabilizerText.Location = new System.Drawing.Point(424, 33);
+            this.WhiteStabilizerText.Name = "WhiteStabilizerText";
+            this.WhiteStabilizerText.Size = new System.Drawing.Size(41, 22);
+            this.WhiteStabilizerText.TabIndex = 19;
+            this.WhiteStabilizerText.Text = "0";
+            this.WhiteStabilizerText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // WhiteStabilizerBar
+            // 
+            this.WhiteStabilizerBar.Location = new System.Drawing.Point(13, 33);
+            this.WhiteStabilizerBar.Maximum = 100;
+            this.WhiteStabilizerBar.Name = "WhiteStabilizerBar";
+            this.WhiteStabilizerBar.Size = new System.Drawing.Size(397, 45);
+            this.WhiteStabilizerBar.TabIndex = 17;
+            this.WhiteStabilizerBar.TickFrequency = 10;
+            this.WhiteStabilizerBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
+            // 
+            // panel1
+            // 
+            this.panel1.Controls.Add(this.DynamicAdaptiveCheckBox);
+            this.panel1.Controls.Add(this.BlackStabilizerLabel);
+            this.panel1.Controls.Add(this.BlackStabilizerText);
+            this.panel1.Controls.Add(this.BlackStabilizerBar);
+            this.panel1.Location = new System.Drawing.Point(6, 21);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(481, 82);
+            this.panel1.TabIndex = 26;
+            // 
+            // DynamicAdaptiveCheckBox
+            // 
+            this.DynamicAdaptiveCheckBox.AutoSize = true;
+            this.DynamicAdaptiveCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.DynamicAdaptiveCheckBox.Location = new System.Drawing.Point(285, 12);
+            this.DynamicAdaptiveCheckBox.Name = "DynamicAdaptiveCheckBox";
+            this.DynamicAdaptiveCheckBox.Size = new System.Drawing.Size(180, 18);
+            this.DynamicAdaptiveCheckBox.TabIndex = 20;
+            this.DynamicAdaptiveCheckBox.Text = "Dynamic Adaptive Boost";
+            this.DynamicAdaptiveCheckBox.UseVisualStyleBackColor = true;
+            this.DynamicAdaptiveCheckBox.CheckedChanged += new System.EventHandler(this.DynamicAdaptiveCheckBox_CheckedChanged);
+            // 
+            // BlackStabilizerLabel
+            // 
+            this.BlackStabilizerLabel.AutoSize = true;
+            this.BlackStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.BlackStabilizerLabel.Location = new System.Drawing.Point(20, 16);
+            this.BlackStabilizerLabel.Name = "BlackStabilizerLabel";
+            this.BlackStabilizerLabel.Size = new System.Drawing.Size(119, 14);
+            this.BlackStabilizerLabel.TabIndex = 18;
+            this.BlackStabilizerLabel.Text = "Black Stabilizer";
+            this.BlackStabilizerLabel.Click += new System.EventHandler(this.label1_Click);
+            this.BlackStabilizerLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
+            // 
+            // BlackStabilizerText
+            // 
+            this.BlackStabilizerText.Location = new System.Drawing.Point(424, 33);
+            this.BlackStabilizerText.Name = "BlackStabilizerText";
+            this.BlackStabilizerText.Size = new System.Drawing.Size(41, 22);
+            this.BlackStabilizerText.TabIndex = 19;
+            this.BlackStabilizerText.Text = "0";
+            this.BlackStabilizerText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // BlackStabilizerBar
+            // 
+            this.BlackStabilizerBar.Location = new System.Drawing.Point(13, 33);
+            this.BlackStabilizerBar.Maximum = 100;
+            this.BlackStabilizerBar.Name = "BlackStabilizerBar";
+            this.BlackStabilizerBar.Size = new System.Drawing.Size(397, 45);
+            this.BlackStabilizerBar.TabIndex = 17;
+            this.BlackStabilizerBar.TickFrequency = 10;
+            this.BlackStabilizerBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
             // 
             // minimizeStartCheckBox
             // 
             this.minimizeStartCheckBox.AutoSize = true;
             this.minimizeStartCheckBox.BackColor = System.Drawing.Color.Transparent;
             this.minimizeStartCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.minimizeStartCheckBox.Location = new System.Drawing.Point(292, 525);
+            this.minimizeStartCheckBox.Location = new System.Drawing.Point(505, 442);
             this.minimizeStartCheckBox.Name = "minimizeStartCheckBox";
-            this.minimizeStartCheckBox.Size = new System.Drawing.Size(201, 18);
+            this.minimizeStartCheckBox.Size = new System.Drawing.Size(138, 32);
             this.minimizeStartCheckBox.TabIndex = 16;
-            this.minimizeStartCheckBox.Text = "Minimize to Tray on Start";
+            this.minimizeStartCheckBox.Text = "Minimize to Tray\r\non Start";
             this.minimizeStartCheckBox.UseVisualStyleBackColor = false;
             this.minimizeStartCheckBox.CheckedChanged += new System.EventHandler(this.CheckOnMinimizeToTray);
             // 
@@ -198,7 +397,7 @@
             this.DisplayCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.DisplayCombo.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.DisplayCombo.FormattingEnabled = true;
-            this.DisplayCombo.Location = new System.Drawing.Point(502, 521);
+            this.DisplayCombo.Location = new System.Drawing.Point(505, 409);
             this.DisplayCombo.Name = "DisplayCombo";
             this.DisplayCombo.Size = new System.Drawing.Size(139, 22);
             this.DisplayCombo.TabIndex = 15;
@@ -207,7 +406,7 @@
             // DVLGroupBox
             // 
             this.DVLGroupBox.Controls.Add(this.DVLPanel);
-            this.DVLGroupBox.Location = new System.Drawing.Point(499, 9);
+            this.DVLGroupBox.Location = new System.Drawing.Point(502, 96);
             this.DVLGroupBox.Name = "DVLGroupBox";
             this.DVLGroupBox.Size = new System.Drawing.Size(145, 307);
             this.DVLGroupBox.TabIndex = 13;
@@ -236,7 +435,6 @@
             this.DVLLabel.TabIndex = 10;
             this.DVLLabel.Text = "Digital Vibrance\r\n(Saturation)\r\n";
             this.DVLLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.dvlToolTip.SetToolTip(this.DVLLabel, "Double-click to reset");
             this.DVLLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
             // 
             // DVLBar
@@ -263,7 +461,7 @@
             // colorGroupBox
             // 
             this.colorGroupBox.Controls.Add(this.colorTablePanel);
-            this.colorGroupBox.Location = new System.Drawing.Point(3, 9);
+            this.colorGroupBox.Location = new System.Drawing.Point(3, 96);
             this.colorGroupBox.Name = "colorGroupBox";
             this.colorGroupBox.Size = new System.Drawing.Size(490, 307);
             this.colorGroupBox.TabIndex = 12;
@@ -320,7 +518,6 @@
             this.BrightnessLabel.Size = new System.Drawing.Size(77, 14);
             this.BrightnessLabel.TabIndex = 21;
             this.BrightnessLabel.Text = "Brightness";
-            this.brightnessToolTip.SetToolTip(this.BrightnessLabel, "Double-click to reset");
             this.BrightnessLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
             // 
             // BrightnessText
@@ -376,7 +573,6 @@
             this.ContrastLabel.Size = new System.Drawing.Size(63, 14);
             this.ContrastLabel.TabIndex = 22;
             this.ContrastLabel.Text = "Contrast";
-            this.contrastToolTip.SetToolTip(this.ContrastLabel, "Double-click to reset");
             this.ContrastLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
             // 
             // gammaPanel
@@ -422,7 +618,6 @@
             this.GammaLabel.Size = new System.Drawing.Size(42, 14);
             this.GammaLabel.TabIndex = 23;
             this.GammaLabel.Text = "Gamma";
-            this.gammaToolTip.SetToolTip(this.GammaLabel, "Double-click to reset");
             this.GammaLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
             // 
             // trayIcon
@@ -494,117 +689,23 @@
             this.dvlToolTip.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.dvlToolTip.ToolTipTitle = "Saturation";
             // 
-            // BlackStabilizerBar
+            // RenameProfileButton
             // 
-            this.BlackStabilizerBar.Location = new System.Drawing.Point(13, 33);
-            this.BlackStabilizerBar.Maximum = 100;
-            this.BlackStabilizerBar.Name = "BlackStabilizerBar";
-            this.BlackStabilizerBar.Size = new System.Drawing.Size(397, 45);
-            this.BlackStabilizerBar.TabIndex = 17;
-            this.BlackStabilizerBar.TickFrequency = 10;
-            this.BlackStabilizerBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
-            // 
-            // BlackStabilizerLabel
-            // 
-            this.BlackStabilizerLabel.AutoSize = true;
-            this.BlackStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.BlackStabilizerLabel.Location = new System.Drawing.Point(20, 16);
-            this.BlackStabilizerLabel.Name = "BlackStabilizerLabel";
-            this.BlackStabilizerLabel.Size = new System.Drawing.Size(119, 14);
-            this.BlackStabilizerLabel.TabIndex = 18;
-            this.BlackStabilizerLabel.Text = "Black Stabilizer";
-            this.BlackStabilizerLabel.Click += new System.EventHandler(this.label1_Click);
-            this.BlackStabilizerLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
-            // 
-            // BlackStabilizerText
-            // 
-            this.BlackStabilizerText.Location = new System.Drawing.Point(424, 33);
-            this.BlackStabilizerText.Name = "BlackStabilizerText";
-            this.BlackStabilizerText.Size = new System.Drawing.Size(41, 22);
-            this.BlackStabilizerText.TabIndex = 19;
-            this.BlackStabilizerText.Text = "0";
-            this.BlackStabilizerText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // StabilizerGroup
-            // 
-            this.StabilizerGroup.Controls.Add(this.panel2);
-            this.StabilizerGroup.Controls.Add(this.panel1);
-            this.StabilizerGroup.Location = new System.Drawing.Point(3, 322);
-            this.StabilizerGroup.Name = "StabilizerGroup";
-            this.StabilizerGroup.Size = new System.Drawing.Size(490, 197);
-            this.StabilizerGroup.TabIndex = 20;
-            this.StabilizerGroup.TabStop = false;
-            this.StabilizerGroup.Text = "Stabilizer";
-            this.StabilizerGroup.Enter += new System.EventHandler(this.groupBox1_Enter);
-            // 
-            // panel1
-            // 
-            this.panel1.Controls.Add(this.DynamicAdaptiveCheckBox);
-            this.panel1.Controls.Add(this.BlackStabilizerLabel);
-            this.panel1.Controls.Add(this.BlackStabilizerText);
-            this.panel1.Controls.Add(this.BlackStabilizerBar);
-            this.panel1.Location = new System.Drawing.Point(6, 21);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(481, 82);
-            this.panel1.TabIndex = 26;
-            // 
-            // DynamicAdaptiveCheckBox
-            // 
-            this.DynamicAdaptiveCheckBox.AutoSize = true;
-            this.DynamicAdaptiveCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.DynamicAdaptiveCheckBox.Location = new System.Drawing.Point(285, 12);
-            this.DynamicAdaptiveCheckBox.Name = "DynamicAdaptiveCheckBox";
-            this.DynamicAdaptiveCheckBox.Size = new System.Drawing.Size(180, 18);
-            this.DynamicAdaptiveCheckBox.TabIndex = 20;
-            this.DynamicAdaptiveCheckBox.Text = "Dynamic Adaptive Boost";
-            this.DynamicAdaptiveCheckBox.UseVisualStyleBackColor = true;
-            this.DynamicAdaptiveCheckBox.CheckedChanged += new System.EventHandler(this.DynamicAdaptiveCheckBox_CheckedChanged);
-            // 
-            // panel2
-            // 
-            this.panel2.Controls.Add(this.WhiteStabilizerLabel);
-            this.panel2.Controls.Add(this.WhiteStabilizerText);
-            this.panel2.Controls.Add(this.WhiteStabilizerBar);
-            this.panel2.Location = new System.Drawing.Point(6, 109);
-            this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(481, 82);
-            this.panel2.TabIndex = 27;
-            // 
-            // WhiteStabilizerLabel
-            // 
-            this.WhiteStabilizerLabel.AutoSize = true;
-            this.WhiteStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.WhiteStabilizerLabel.Location = new System.Drawing.Point(20, 16);
-            this.WhiteStabilizerLabel.Name = "WhiteStabilizerLabel";
-            this.WhiteStabilizerLabel.Size = new System.Drawing.Size(119, 14);
-            this.WhiteStabilizerLabel.TabIndex = 18;
-            this.WhiteStabilizerLabel.Text = "White Stabilizer";
-            this.WhiteStabilizerLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
-            // 
-            // WhiteStabilizerText
-            // 
-            this.WhiteStabilizerText.Location = new System.Drawing.Point(424, 33);
-            this.WhiteStabilizerText.Name = "WhiteStabilizerText";
-            this.WhiteStabilizerText.Size = new System.Drawing.Size(41, 22);
-            this.WhiteStabilizerText.TabIndex = 19;
-            this.WhiteStabilizerText.Text = "0";
-            this.WhiteStabilizerText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // WhiteStabilizerBar
-            // 
-            this.WhiteStabilizerBar.Location = new System.Drawing.Point(13, 33);
-            this.WhiteStabilizerBar.Maximum = 100;
-            this.WhiteStabilizerBar.Name = "WhiteStabilizerBar";
-            this.WhiteStabilizerBar.Size = new System.Drawing.Size(397, 45);
-            this.WhiteStabilizerBar.TabIndex = 17;
-            this.WhiteStabilizerBar.TickFrequency = 10;
-            this.WhiteStabilizerBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
+            this.RenameProfileButton.Font = new System.Drawing.Font("Consolas", 10F);
+            this.RenameProfileButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.RenameProfileButton.Location = new System.Drawing.Point(93, 49);
+            this.RenameProfileButton.Name = "RenameProfileButton";
+            this.RenameProfileButton.Size = new System.Drawing.Size(88, 23);
+            this.RenameProfileButton.TabIndex = 25;
+            this.RenameProfileButton.Text = "이름 수정";
+            this.RenameProfileButton.UseVisualStyleBackColor = true;
+            this.RenameProfileButton.Click += new System.EventHandler(this.RenameProfileButton_Click);
             // 
             // MainForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(734, 552);
+            this.ClientSize = new System.Drawing.Size(734, 615);
             this.Controls.Add(this.layoutTablePanel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -618,6 +719,15 @@
             this.SideMenu.PerformLayout();
             this.ColorPanel.ResumeLayout(false);
             this.ColorPanel.PerformLayout();
+            this.ProfileGroupBox.ResumeLayout(false);
+            this.ProfileGroupBox.PerformLayout();
+            this.StabilizerGroup.ResumeLayout(false);
+            this.panel2.ResumeLayout(false);
+            this.panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.WhiteStabilizerBar)).EndInit();
+            this.panel1.ResumeLayout(false);
+            this.panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.BlackStabilizerBar)).EndInit();
             this.DVLGroupBox.ResumeLayout(false);
             this.DVLPanel.ResumeLayout(false);
             this.DVLPanel.PerformLayout();
@@ -634,22 +744,12 @@
             this.gammaPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.GammaBar)).EndInit();
             this.trayMenuStrip.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.BlackStabilizerBar)).EndInit();
-            this.StabilizerGroup.ResumeLayout(false);
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
-            this.panel2.ResumeLayout(false);
-            this.panel2.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.WhiteStabilizerBar)).EndInit();
             this.ResumeLayout(false);
 
         }
 
         #endregion
         private System.Windows.Forms.TableLayoutPanel layoutTablePanel;
-        private System.Windows.Forms.ToolStrip SideMenu;
-        private System.Windows.Forms.ToolStripButton MiscsButton;
-        private System.Windows.Forms.ToolStripButton ColorButton;
         private System.Windows.Forms.Panel ColorPanel;
         
         
@@ -694,6 +794,17 @@
         private System.Windows.Forms.Label WhiteStabilizerLabel;
         private System.Windows.Forms.TextBox WhiteStabilizerText;
         private System.Windows.Forms.TrackBar WhiteStabilizerBar;
+        private System.Windows.Forms.ComboBox ProfileComboBox;
+        private System.Windows.Forms.CheckBox ProfileEnabledCheckBox;
+        private System.Windows.Forms.TextBox TargetProcessTextBox;
+        private System.Windows.Forms.Button DeleteProfileButton;
+        private System.Windows.Forms.Button AddProfileButton;
+        private System.Windows.Forms.GroupBox ProfileGroupBox;
+        private System.Windows.Forms.Label profile_t1;
+        private System.Windows.Forms.ToolStrip SideMenu;
+        private System.Windows.Forms.ToolStripButton MiscsButton;
+        private System.Windows.Forms.ToolStripButton ColorButton;
+        private System.Windows.Forms.Button RenameProfileButton;
     }
 }
 

@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using tarkov_settings.Setting;
 
 namespace tarkov_settings
 {
@@ -61,9 +62,6 @@ namespace tarkov_settings
         private static extern bool CloseHandle(IntPtr hObject);
         #endregion
 
-        /// <summary>
-        /// QueryFullProcessImageName API를 사용하여 권한 오류(Access Denied) 없이 모든 게임의 정확한 실행 파일명을 읽어옵니다.
-        /// </summary>
         public static string GetActiveWindowTitle()
         {
             try
@@ -74,7 +72,6 @@ namespace tarkov_settings
                 GetWindowThreadProcessId(handle, out uint processID);
                 if (processID == 0) return null;
 
-                // [핵심] PROCESS_QUERY_LIMITED_INFORMATION 플래그로 권한 문제 완벽 해결
                 IntPtr hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processID);
                 if (hProcess != IntPtr.Zero)
                 {
@@ -85,7 +82,6 @@ namespace tarkov_settings
                         if (QueryFullProcessImageName(hProcess, 0, sb, ref capacity))
                         {
                             string fullPath = sb.ToString();
-                            // "C:\...\Expedition Into Darkness.exe" -> "Expedition Into Darkness"
                             return Path.GetFileNameWithoutExtension(fullPath);
                         }
                     }
@@ -95,7 +91,6 @@ namespace tarkov_settings
                     }
                 }
 
-                // 백업용 C# 레거시 방식
                 try
                 {
                     using (var proc = Process.GetProcessById(Convert.ToInt32(processID)))
@@ -119,9 +114,9 @@ namespace tarkov_settings
     {
         private NativeMethods.WinEventDelegate processHook;
         private readonly ColorController cController = ColorController.Instance;
-        private HashSet<string> pTargets = new HashSet<string>();
 
         private bool _isTargetFocused = false;
+        private string _currentFocusedProfileName = null; // 현재 적용 중인 프로필 이름 추적
         private System.Threading.Timer _pollTimer;
 
         #region Singleton Pattern implement
@@ -136,14 +131,6 @@ namespace tarkov_settings
 
         private ProcessMonitor() { }
 
-        public void Add(string process)
-        {
-            if (!string.IsNullOrEmpty(process))
-            {
-                this.pTargets.Add(process.ToLower());
-            }
-        }
-
         public void Init()
         {
             processHook = new NativeMethods.WinEventDelegate(WinEventProc);
@@ -152,13 +139,13 @@ namespace tarkov_settings
 
             cController.Init();
 
-            // [추가] 이벤트 누락 방지를 위한 0.5초 주기 안전 폴링 타이머
+            // 0.5초 주기 안전 폴링 타이머
             _pollTimer = new System.Threading.Timer((state) =>
             {
                 WinEventProc(IntPtr.Zero, 0, IntPtr.Zero, 0, 0, 0, 0);
             }, null, 500, 500);
 
-            // 시작 시점에 현재 켜진 활성 창 즉시 1회 검사
+            // 시작 시점 즉시 1회 검사
             OnFocusChangedInternal();
         }
 
@@ -186,36 +173,39 @@ namespace tarkov_settings
             if (Parent == null || Parent.IsDisposed) return;
 
             string activeTitle = NativeMethods.GetActiveWindowTitle();
-            bool isTargetNow = !string.IsNullOrEmpty(activeTitle) &&
-                               this.pTargets.Contains(activeTitle.ToLower()) &&
-                               Parent.IsEnabled;
 
-            if (isTargetNow)
+            // [핵심] 현재 활성화된 창과 일치하는 프로필 자동 검색
+            Profile matchedProfile = Parent.GetMatchingProfile(activeTitle);
+
+            if (matchedProfile != null && Parent.IsEnabled)
             {
-                if (!_isTargetFocused)
+                // 게임 창이 새로 포커스되었거나, 다른 게임으로 바로 전환된 경우
+                if (!_isTargetFocused || _currentFocusedProfileName != matchedProfile.Name)
                 {
-                    Console.WriteLine("[pMonitor] Target Process IS focused : " + activeTitle);
+                    Console.WriteLine($"[pMonitor] Target Process IS focused: {activeTitle} (Profile: {matchedProfile.Name})");
                     _isTargetFocused = true;
+                    _currentFocusedProfileName = matchedProfile.Name;
 
-                    var (b, c, g, dvl) = Parent.GetColorValue();
+                    // 매칭된 프로필의 수치를 ColorController에 즉시 주입 및 적용
+                    cController.Brightness = matchedProfile.Brightness;
+                    cController.Contrast = matchedProfile.Contrast;
+                    cController.Gamma = matchedProfile.Gamma;
+                    cController.BlackStabilizer = matchedProfile.BlackStabilizer;
+                    cController.WhiteStabilizer = matchedProfile.WhiteStabilizer;
+                    cController.IsDynamicAdaptive = matchedProfile.IsDynamicAdaptive;
 
-                    cController.BlackStabilizer = Parent.BlackStabilizer;
-                    cController.WhiteStabilizer = Parent.WhiteStabilizer;
-                    cController.IsDynamicAdaptive = Parent.IsDynamicAdaptive;
-
-                    cController.ChangeColorRamp(brightness: b,
-                                                contrast: c,
-                                                gamma: g,
-                                                reset: false);
-                    cController.DVL = dvl;
+                    cController.ApplyColorSettings(reset: false);
+                    cController.DVL = matchedProfile.Saturation;
                 }
             }
             else
             {
+                // 게임이 아닌 창(바탕화면, 브라우저 등)일 때
                 if (_isTargetFocused)
                 {
                     Console.WriteLine("[pMonitor] Target Process is NOT focused");
                     _isTargetFocused = false;
+                    _currentFocusedProfileName = null;
 
                     cController.ChangeColorRamp(reset: true);
                     cController.ResetDVL();
@@ -231,6 +221,7 @@ namespace tarkov_settings
             NativeMethods.UnHook();
 
             _isTargetFocused = false;
+            _currentFocusedProfileName = null;
 
             cController.Close();
         }
