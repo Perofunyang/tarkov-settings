@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.Linq;
+using System.Resources;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using tarkov_settings.Setting;
 using tarkov_settings.GPU;
+using tarkov_settings.Setting;
 
 namespace tarkov_settings
 {
@@ -162,10 +165,51 @@ namespace tarkov_settings
         #region Built-in Sample Images & Real-time Image Renderer (제로 가비지 초고속 렌더러)
         private void InitSampleImages()
         {
-            _sampleImages["1. 주간 수풀 맵 (Daylight)"] = CreateProceduralDaySample();
-            _sampleImages["2. 야간 NVG + 플래시 (Night NVG)"] = CreateProceduralNvgSample();
-            _sampleImages["3. 인터체인지 실내 (Dark Interior)"] = CreateProceduralDarkSample();
+            _sampleImages.Clear();
 
+            try
+            {
+                // 1. 내장된 Resources.resx의 모든 리소스를 자동으로 읽어옴
+                ResourceSet resourceSet = Properties.Resources.ResourceManager.GetResourceSet(
+                    CultureInfo.InvariantCulture, true, true);
+
+                if (resourceSet != null)
+                {
+                    foreach (DictionaryEntry entry in resourceSet)
+                    {
+                        // 리소스 항목이 이미지(Bitmap)인 경우만 자동 등록
+                        if (entry.Value is Bitmap bmp)
+                        {
+                            string rawName = entry.Key.ToString();
+
+                            // 아이콘(Icon)이나 브랜드 로고 등 미리보기용이 아닌 특정 이미지 제외 필터
+                            if (rawName.Equals("trayIcon", StringComparison.OrdinalIgnoreCase) ||
+                                rawName.Equals("ScreenSample", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            // 파일 이름의 '_'를 띄어쓰기로 바꿔서 보기 좋게 가공 (예: sample_day_woods -> sample day woods)
+                            string displayName = rawName.Replace('_', ' ');
+                            _sampleImages[displayName] = bmp;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Sample Image Load Error] {ex.Message}");
+            }
+
+            // 2. 만약 리소스에 사진이 아직 하나도 없다면 임시 기본 그래픽 3종 자동 생성
+            if (_sampleImages.Count == 0)
+            {
+                _sampleImages["1. 주간 수풀 맵 (Daylight)"] = CreateProceduralDaySample();
+                _sampleImages["2. 야간 NVG + 플래시 (Night NVG)"] = CreateProceduralNvgSample();
+                _sampleImages["3. 인터체인지 실내 (Dark Interior)"] = CreateProceduralDarkSample();
+            }
+
+            // 3. 드롭다운(ComboBox)에 사진 이름 목록 자동 채우기
             if (this.SampleImageComboBox != null)
             {
                 this.SampleImageComboBox.Items.Clear();
