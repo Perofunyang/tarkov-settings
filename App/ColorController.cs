@@ -204,7 +204,7 @@ namespace tarkov_settings
         /// <summary>
         /// 단조 증가 블랙 발굴 + 소프트 니 상한선 캡(Soft Knee Cap) 화이트 압축이 통합된 256 LUT 연산 함수
         /// </summary>
-        private static ushort[] CalculateLUT(
+        public static ushort[] CalculateLUT(
             double brightness,
             double contrast,
             double gamma,

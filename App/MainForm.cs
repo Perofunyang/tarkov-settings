@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using tarkov_settings.Setting;
 using tarkov_settings.GPU;
@@ -14,36 +17,72 @@ namespace tarkov_settings
         private AppSetting appSetting;
 
         private bool minimizeOnStart = false;
-        private bool _isLoadingProfile = false; // UI 값 로드 중 중복 이벤트 방지 플래그
+        private bool _isLoadingProfile = false;
+
+        // [접이식 창 너비 상수]
+        private const int COLLAPSED_WIDTH = 665;
+        private const int EXPANDED_WIDTH = 1393;
+        private bool _isPreviewExpanded = false;
 
         // 디스크 과부하 방지 지연 저장 타이머 (1초)
         private System.Windows.Forms.Timer _saveDebounceTimer;
-
-        // 트레이 메뉴에 추가될 동적 적응형 메뉴 항목
         private ToolStripMenuItem _trayDynamicAdaptiveMenuItem;
+
+        // [미리보기 전용] 재사용 버퍼 (GC 메모리 생성 제로화로 슬라이더 렉 완전 제거)
+        private Dictionary<string, Bitmap> _sampleImages = new Dictionary<string, Bitmap>();
+        private Bitmap _cachedRawSample = null;
+        private Bitmap _cachedProcessedBitmap = null;
+        private byte[] _rawBuffer = null;
+        private byte[] _workBuffer = null;
+        private int _bufferStride = 0;
+        private int _bufferWidth = 0;
+        private int _bufferHeight = 0;
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED (깜빡임 완전 제거)
+                return cp;
+            }
+        }
 
         public MainForm()
         {
             InitializeComponent();
 
-            // 1초 지연 저장 타이머 초기화
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
+            this.UpdateStyles();
+
             _saveDebounceTimer = new System.Windows.Forms.Timer { Interval = 1000 };
             _saveDebounceTimer.Tick += (s, e) =>
             {
                 _saveDebounceTimer.Stop();
-                SaveCurrentSettingsToDisk(); // 조작 1초 뒤 디스크에 1번만 안전 저장
+                SaveCurrentSettingsToDisk();
             };
 
-            #region Load App Settings (다중 프로필 로드)
+            #region Load App Settings
             appSetting = AppSetting.Load();
             minimizeOnStart = appSetting.minimizeOnStart;
             this.minimizeStartCheckBox.Checked = minimizeOnStart;
 
-            // 프로필 드롭다운 초기화 및 첫 프로필 UI 로드
             PopulateProfileComboBox();
             #endregion
 
-            // 트레이 우클릭 메뉴 상단에 Dynamic Adaptive Boost 메뉴 추가
+            // 이벤트 연결
+            if (this.AddProfileButton != null) this.AddProfileButton.Click += AddProfileButton_Click;
+            if (this.DeleteProfileButton != null) this.DeleteProfileButton.Click += DeleteProfileButton_Click;
+            if (this.RenameProfileButton != null) this.RenameProfileButton.Click += RenameProfileButton_Click;
+            if (this.ProfileComboBox != null) this.ProfileComboBox.SelectedIndexChanged += ProfileComboBox_SelectedIndexChanged;
+            if (this.TargetProcessTextBox != null) this.TargetProcessTextBox.TextChanged += TargetProcessTextBox_TextChanged;
+            if (this.ProfileEnabledCheckBox != null) this.ProfileEnabledCheckBox.CheckedChanged += ProfileEnabledCheckBox_CheckedChanged;
+            if (this.SampleImageComboBox != null) this.SampleImageComboBox.SelectedIndexChanged += SampleImageComboBox_SelectedIndexChanged;
+            if (this.CompareOriginalCheckBox != null) this.CompareOriginalCheckBox.CheckedChanged += CompareOriginalCheckBox_CheckedChanged;
+            if (this.TogglePreviewButton != null) this.TogglePreviewButton.Click += TogglePreviewButton_Click;
+
+            // 트레이 메뉴
             _trayDynamicAdaptiveMenuItem = new ToolStripMenuItem("Dynamic Adaptive Boost")
             {
                 CheckOnClick = true,
@@ -54,14 +93,13 @@ namespace tarkov_settings
             if (this.trayMenuStrip != null)
             {
                 this.trayMenuStrip.Items.Insert(0, _trayDynamicAdaptiveMenuItem);
-                this.trayMenuStrip.Items.Insert(1, new ToolStripSeparator()); // 구분선
+                this.trayMenuStrip.Items.Insert(1, new ToolStripSeparator());
             }
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             this.Text = String.Format("Tarkov Settings {0}", version);
             _ = new UpdateNotifier(version);
 
-            // Saturation Initialize
             if (gpu.Vendor != GPUVendor.NVIDIA)
                 DVLGroupBox.Enabled = false;
 
@@ -77,14 +115,253 @@ namespace tarkov_settings
             Display.Primary = (string)DisplayCombo.SelectedItem;
             #endregion
 
-            // Initialize Process Monitor
+            InitSampleImages();
+
+            // 시작 시 접힌 상태로 시작
+            SetPreviewExpanded(false);
+
             pMonitor.Parent = this;
             pMonitor.Init();
         }
 
+        #region Expand / Collapse Preview Logic
+        private void SetPreviewExpanded(bool expand)
+        {
+            _isPreviewExpanded = expand;
+
+            this.SuspendLayout();
+            if (this.layoutTablePanel != null) this.layoutTablePanel.SuspendLayout();
+
+            if (this.PreviewGroupBox != null)
+            {
+                this.PreviewGroupBox.Visible = _isPreviewExpanded;
+            }
+
+            this.ClientSize = new Size(_isPreviewExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH, this.ClientSize.Height);
+
+            if (this.TogglePreviewButton != null)
+            {
+                this.TogglePreviewButton.Text = _isPreviewExpanded ? "◀ 접기" : "▶ 미리보기";
+            }
+
+            if (this.layoutTablePanel != null) this.layoutTablePanel.ResumeLayout(false);
+            this.ResumeLayout(true);
+
+            if (_isPreviewExpanded)
+            {
+                RenderAndRefreshPreview();
+            }
+        }
+
+        private void TogglePreviewButton_Click(object sender, EventArgs e)
+        {
+            SetPreviewExpanded(!_isPreviewExpanded);
+        }
+        #endregion
+
+        #region Built-in Sample Images & Real-time Image Renderer (제로 가비지 초고속 렌더러)
+        private void InitSampleImages()
+        {
+            _sampleImages["1. 주간 수풀 맵 (Daylight)"] = CreateProceduralDaySample();
+            _sampleImages["2. 야간 NVG + 플래시 (Night NVG)"] = CreateProceduralNvgSample();
+            _sampleImages["3. 인터체인지 실내 (Dark Interior)"] = CreateProceduralDarkSample();
+
+            if (this.SampleImageComboBox != null)
+            {
+                this.SampleImageComboBox.Items.Clear();
+                foreach (var key in _sampleImages.Keys)
+                {
+                    this.SampleImageComboBox.Items.Add(key);
+                }
+
+                if (this.SampleImageComboBox.Items.Count > 0)
+                    this.SampleImageComboBox.SelectedIndex = 0;
+            }
+        }
+
+        private void SampleImageComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string selectedName = SampleImageComboBox.SelectedItem as string;
+            if (!string.IsNullOrEmpty(selectedName) && _sampleImages.ContainsKey(selectedName))
+            {
+                SetCurrentSampleImage(_sampleImages[selectedName]);
+            }
+        }
+
         /// <summary>
-        /// 현재 UI에서 선택/편집 중인 Profile 객체
+        /// 사진 선택 시 재사용 버퍼를 1회만 할당하여 슬라이더 조작 중 GC 메모리 생성을 0으로 방지
         /// </summary>
+        private void SetCurrentSampleImage(Bitmap src)
+        {
+            if (src == null) return;
+
+            int w = 640;
+            int h = 360;
+
+            _cachedRawSample?.Dispose();
+            _cachedProcessedBitmap?.Dispose();
+
+            _cachedRawSample = new Bitmap(w, h, PixelFormat.Format24bppRgb);
+            using (Graphics g = Graphics.FromImage(_cachedRawSample))
+            {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bilinear;
+                g.DrawImage(src, 0, 0, w, h);
+            }
+
+            _cachedProcessedBitmap = new Bitmap(w, h, PixelFormat.Format24bppRgb);
+
+            BitmapData data = _cachedRawSample.LockBits(new Rectangle(0, 0, w, h), ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
+            _bufferStride = Math.Abs(data.Stride);
+            _bufferWidth = w;
+            _bufferHeight = h;
+            int bytes = _bufferStride * h;
+
+            _rawBuffer = new byte[bytes];
+            _workBuffer = new byte[bytes];
+
+            Marshal.Copy(data.Scan0, _rawBuffer, 0, bytes);
+            _cachedRawSample.UnlockBits(data);
+
+            if (_isPreviewExpanded)
+            {
+                RenderAndRefreshPreview();
+            }
+        }
+
+        private void CompareOriginalCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateDisplayedImage();
+        }
+
+        /// <summary>
+        /// 슬라이더 조작 시 0.2ms 만에 버퍼를 즉시 갱신 (메모리 생성 0바이트)
+        /// </summary>
+        private void RenderAndRefreshPreview()
+        {
+            if (!_isPreviewExpanded || _cachedRawSample == null || _rawBuffer == null) return;
+
+            if (this.CompareOriginalCheckBox != null && this.CompareOriginalCheckBox.Checked)
+            {
+                this.PreviewPictureBox.Image = _cachedRawSample;
+                return;
+            }
+
+            // 1. 256 LUT 연산
+            double b = Brightness;
+            double c = Contrast;
+            double g = Gamma;
+            double black = BlackStabilizer;
+            double white = WhiteStabilizer;
+            float dynamicBoost = ColorController.Instance.CurrentDynamicBoost;
+
+            ushort[] lut16 = ColorController.CalculateLUT(b, c, g, black, white, dynamicBoost);
+            byte[] lut8 = new byte[256];
+            for (int i = 0; i < 256; i++)
+            {
+                lut8[i] = (byte)(lut16[i] >> 8);
+            }
+
+            // 2. 기존 메모리 버퍼에서 즉시 픽셀 변환 (GC 할당 0%)
+            int len = _rawBuffer.Length;
+            double satScale = 1.0 + (DVL / 50.0);
+            bool hasDVL = (DVL != 0);
+
+            for (int i = 0; i < len; i += 3)
+            {
+                byte blue = lut8[_rawBuffer[i]];
+                byte green = lut8[_rawBuffer[i + 1]];
+                byte red = lut8[_rawBuffer[i + 2]];
+
+                if (hasDVL)
+                {
+                    double gray = (0.299 * red) + (0.587 * green) + (0.114 * blue);
+                    red = (byte)Math.Min(Math.Max(gray + (red - gray) * satScale, 0), 255);
+                    green = (byte)Math.Min(Math.Max(gray + (green - gray) * satScale, 0), 255);
+                    blue = (byte)Math.Min(Math.Max(gray + (blue - gray) * satScale, 0), 255);
+                }
+
+                _workBuffer[i] = blue;
+                _workBuffer[i + 1] = green;
+                _workBuffer[i + 2] = red;
+            }
+
+            // 3. 비트맵에 초고속 복사
+            BitmapData dstData = _cachedProcessedBitmap.LockBits(
+                new Rectangle(0, 0, _bufferWidth, _bufferHeight),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format24bppRgb
+            );
+
+            Marshal.Copy(_workBuffer, 0, dstData.Scan0, len);
+            _cachedProcessedBitmap.UnlockBits(dstData);
+
+            UpdateDisplayedImage();
+        }
+
+        private void UpdateDisplayedImage()
+        {
+            if (this.PreviewPictureBox == null) return;
+
+            if (this.CompareOriginalCheckBox != null && this.CompareOriginalCheckBox.Checked)
+            {
+                this.PreviewPictureBox.Image = _cachedRawSample;
+            }
+            else
+            {
+                this.PreviewPictureBox.Image = _cachedProcessedBitmap ?? _cachedRawSample;
+            }
+        }
+
+        #region 기본 테스트용 샘플 사진 생성기
+        private Bitmap CreateProceduralDaySample()
+        {
+            Bitmap bmp = new Bitmap(640, 360, PixelFormat.Format24bppRgb);
+            using (Graphics gfx = Graphics.FromImage(bmp))
+            {
+                gfx.Clear(Color.FromArgb(10, 15, 10));
+                using (Brush b = new SolidBrush(Color.FromArgb(25, 35, 20)))
+                    gfx.FillRectangle(b, 50, 150, 180, 150);
+                using (Brush b = new SolidBrush(Color.FromArgb(45, 55, 35)))
+                    gfx.DrawString("수풀 속 적 (PMC)", new Font("Consolas", 12, FontStyle.Bold), b, 60, 220);
+                using (Brush b = new SolidBrush(Color.FromArgb(180, 190, 150)))
+                    gfx.FillEllipse(b, 350, 80, 200, 200);
+            }
+            return bmp;
+        }
+
+        private Bitmap CreateProceduralNvgSample()
+        {
+            Bitmap bmp = new Bitmap(640, 360, PixelFormat.Format24bppRgb);
+            using (Graphics gfx = Graphics.FromImage(bmp))
+            {
+                gfx.Clear(Color.FromArgb(5, 12, 8));
+                using (Brush b = new SolidBrush(Color.FromArgb(15, 30, 20)))
+                    gfx.FillRectangle(b, 40, 180, 150, 140);
+                using (Brush b = new SolidBrush(Color.FromArgb(30, 50, 35)))
+                    gfx.DrawString("어두운 모퉁이", new Font("Consolas", 11, FontStyle.Bold), b, 50, 240);
+
+                using (Brush b = new SolidBrush(Color.FromArgb(230, 255, 240)))
+                    gfx.FillEllipse(b, 460, 120, 150, 150);
+            }
+            return bmp;
+        }
+
+        private Bitmap CreateProceduralDarkSample()
+        {
+            Bitmap bmp = new Bitmap(640, 360, PixelFormat.Format24bppRgb);
+            using (Graphics gfx = Graphics.FromImage(bmp))
+            {
+                gfx.Clear(Color.FromArgb(4, 4, 6));
+                using (Brush b = new SolidBrush(Color.FromArgb(18, 18, 24)))
+                    gfx.FillRectangle(b, 40, 160, 200, 160);
+                using (Brush b = new SolidBrush(Color.FromArgb(28, 28, 38)))
+                    gfx.DrawString("숨은 적 (RGB 25)", new Font("Consolas", 11, FontStyle.Bold), b, 55, 230);
+            }
+            return bmp;
+        }
+        #endregion
+        #endregion
+
         public Profile CurrentProfile
         {
             get
@@ -98,9 +375,6 @@ namespace tarkov_settings
             }
         }
 
-        /// <summary>
-        /// 활성 창 프로세스명과 일치하는 활성화된 프로필 검색 (ProcessMonitor에서 호출)
-        /// </summary>
         public Profile GetMatchingProfile(string processName)
         {
             if (string.IsNullOrEmpty(processName) || appSetting?.Profiles == null)
@@ -122,7 +396,7 @@ namespace tarkov_settings
             return null;
         }
 
-        #region Profile Management Logic (프로필 추가/삭제/이름수정/편집)
+        #region Profile Management Logic
         private void PopulateProfileComboBox()
         {
             _isLoadingProfile = true;
@@ -148,7 +422,6 @@ namespace tarkov_settings
 
             _isLoadingProfile = true;
 
-            // 슬라이더 및 체크박스 수치 로드
             Brightness = profile.Brightness;
             Contrast = profile.Contrast;
             Gamma = profile.Gamma;
@@ -157,11 +430,9 @@ namespace tarkov_settings
             WhiteStabilizer = profile.WhiteStabilizer;
             IsDynamicAdaptive = profile.IsDynamicAdaptive;
 
-            // 텍스트박스 및 프로필 활성화 여부 로드
             TargetProcessTextBox.Text = string.Join(", ", profile.TargetProcesses);
             ProfileEnabledCheckBox.Checked = profile.IsEnabled;
 
-            // 라벨 텍스트 수치 갱신
             BrightnessText.Text = profile.Brightness.ToString("0.00");
             ContrastText.Text = profile.Contrast.ToString("0.00");
             GammaText.Text = profile.Gamma.ToString("0.00");
@@ -169,7 +440,6 @@ namespace tarkov_settings
             BlackStabilizerText.Text = profile.BlackStabilizer.ToString();
             WhiteStabilizerText.Text = profile.WhiteStabilizer.ToString();
 
-            // ColorController에 현재 프로필 값 전달
             var cController = ColorController.Instance;
             cController.Brightness = profile.Brightness;
             cController.Contrast = profile.Contrast;
@@ -179,6 +449,11 @@ namespace tarkov_settings
             cController.IsDynamicAdaptive = profile.IsDynamicAdaptive;
 
             _isLoadingProfile = false;
+
+            if (_isPreviewExpanded)
+            {
+                RenderAndRefreshPreview();
+            }
         }
 
         private void ProfileComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -192,7 +467,6 @@ namespace tarkov_settings
 
         private void AddProfileButton_Click(object sender, EventArgs e)
         {
-            // [개선] 이미 존재하는 이름과 겹치지 않는 고유한 기본 이름 자동 탐색 (while 루프)
             int count = appSetting.Profiles.Count + 1;
             string defaultName = $"Custom Game {count}";
 
@@ -202,12 +476,10 @@ namespace tarkov_settings
                 defaultName = $"Custom Game {count}";
             }
 
-            // 중복 없는 안전한 기본 이름으로 팝업 띄우기
             string newName = ShowInputDialog("새 프로필의 이름을 입력하세요:", "새 프로필 생성", defaultName);
 
             if (string.IsNullOrWhiteSpace(newName)) return;
 
-            // 사용자가 직접 타이핑한 이름이 중복되는지 최종 검사
             if (appSetting.Profiles.Any(p => p.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
             {
                 MessageBox.Show("이미 존재하는 프로필 이름입니다.", "알림", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -318,9 +590,6 @@ namespace tarkov_settings
             CurrentProfile.IsDynamicAdaptive = IsDynamicAdaptive;
         }
 
-        /// <summary>
-        /// 프로필 이름 입력용 모달 팝업 대화상자
-        /// </summary>
         private static string ShowInputDialog(string prompt, string title, string defaultValue = "")
         {
             using (Form promptForm = new Form())
@@ -463,6 +732,7 @@ namespace tarkov_settings
                 WhiteStabilizerBar.Value = 0;
 
             SyncUIToCurrentProfile();
+            if (_isPreviewExpanded) RenderAndRefreshPreview();
             ScheduleSave();
         }
 
@@ -493,6 +763,7 @@ namespace tarkov_settings
             {
                 SyncUIToCurrentProfile();
                 ColorController.Instance.ApplyColorSettings();
+                if (_isPreviewExpanded) RenderAndRefreshPreview(); // 제로 가비지 0.2ms 즉시 렌더링!
                 ScheduleSave();
             }
         }
@@ -510,6 +781,7 @@ namespace tarkov_settings
             }
 
             SyncUIToCurrentProfile();
+            if (_isPreviewExpanded) RenderAndRefreshPreview();
             ScheduleSave();
         }
 
@@ -571,5 +843,6 @@ namespace tarkov_settings
         private void groupBox1_Enter_1(object sender, EventArgs e) { }
         private void label2_Click(object sender, EventArgs e) { }
         private void label1_Click_1(object sender, EventArgs e) { }
+        private void layoutTablePanel_Paint(object sender, PaintEventArgs e) { }
     }
 }

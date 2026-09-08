@@ -31,9 +31,6 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.layoutTablePanel = new System.Windows.Forms.TableLayoutPanel();
-            this.SideMenu = new System.Windows.Forms.ToolStrip();
-            this.MiscsButton = new System.Windows.Forms.ToolStripButton();
-            this.ColorButton = new System.Windows.Forms.ToolStripButton();
             this.ColorPanel = new System.Windows.Forms.Panel();
             this.ProfileGroupBox = new System.Windows.Forms.GroupBox();
             this.RenameProfileButton = new System.Windows.Forms.Button();
@@ -74,6 +71,10 @@
             this.GammaText = new System.Windows.Forms.TextBox();
             this.GammaBar = new System.Windows.Forms.TrackBar();
             this.GammaLabel = new System.Windows.Forms.Label();
+            this.PreviewGroupBox = new System.Windows.Forms.GroupBox();
+            this.PreviewPictureBox = new System.Windows.Forms.PictureBox();
+            this.CompareOriginalCheckBox = new System.Windows.Forms.CheckBox();
+            this.SampleImageComboBox = new System.Windows.Forms.ComboBox();
             this.trayIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.trayMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.enableToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -83,8 +84,8 @@
             this.contrastToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.gammaToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.dvlToolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.TogglePreviewButton = new System.Windows.Forms.Button();
             this.layoutTablePanel.SuspendLayout();
-            this.SideMenu.SuspendLayout();
             this.ColorPanel.SuspendLayout();
             this.ProfileGroupBox.SuspendLayout();
             this.StabilizerGroup.SuspendLayout();
@@ -103,89 +104,39 @@
             ((System.ComponentModel.ISupportInitialize)(this.ContrastBar)).BeginInit();
             this.gammaPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.GammaBar)).BeginInit();
+            this.PreviewGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.PreviewPictureBox)).BeginInit();
             this.trayMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // layoutTablePanel
             // 
             this.layoutTablePanel.ColumnCount = 2;
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 10.37594F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 89.62406F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.layoutTablePanel.Controls.Add(this.SideMenu, 0, 0);
-            this.layoutTablePanel.Controls.Add(this.ColorPanel, 1, 0);
+            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.layoutTablePanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.layoutTablePanel.Controls.Add(this.ColorPanel, 0, 0);
+            this.layoutTablePanel.Controls.Add(this.PreviewGroupBox, 1, 0);
             this.layoutTablePanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.layoutTablePanel.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.layoutTablePanel.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
             this.layoutTablePanel.Location = new System.Drawing.Point(0, 0);
             this.layoutTablePanel.Name = "layoutTablePanel";
             this.layoutTablePanel.RowCount = 1;
-            this.layoutTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 18.4669F));
-            this.layoutTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 81.5331F));
-            this.layoutTablePanel.Size = new System.Drawing.Size(734, 615);
+            this.layoutTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.layoutTablePanel.Size = new System.Drawing.Size(1393, 615);
             this.layoutTablePanel.TabIndex = 0;
-            // 
-            // SideMenu
-            // 
-            this.SideMenu.AutoSize = false;
-            this.SideMenu.BackColor = System.Drawing.Color.AliceBlue;
-            this.SideMenu.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.SideMenu.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            this.SideMenu.ImageScalingSize = new System.Drawing.Size(48, 48);
-            this.SideMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.MiscsButton,
-            this.ColorButton});
-            this.SideMenu.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
-            this.SideMenu.Location = new System.Drawing.Point(0, 5);
-            this.SideMenu.Margin = new System.Windows.Forms.Padding(0, 5, 0, 5);
-            this.SideMenu.Name = "SideMenu";
-            this.SideMenu.Size = new System.Drawing.Size(76, 605);
-            this.SideMenu.TabIndex = 1;
-            this.SideMenu.Text = "colorSettings";
-            // 
-            // MiscsButton
-            // 
-            this.MiscsButton.Enabled = false;
-            this.MiscsButton.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.MiscsButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.MiscsButton.Image = global::tarkov_settings.Properties.Resources.nikita;
-            this.MiscsButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.MiscsButton.Name = "MiscsButton";
-            this.MiscsButton.Size = new System.Drawing.Size(74, 66);
-            this.MiscsButton.Text = "Miscs";
-            this.MiscsButton.TextDirection = System.Windows.Forms.ToolStripTextDirection.Horizontal;
-            this.MiscsButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
-            // 
-            // ColorButton
-            // 
-            this.ColorButton.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.ColorButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.ColorButton.Image = global::tarkov_settings.Properties.Resources.nikita_rainbow;
-            this.ColorButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.ColorButton.Name = "ColorButton";
-            this.ColorButton.Size = new System.Drawing.Size(74, 66);
-            this.ColorButton.Text = "Color";
-            this.ColorButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
+            this.layoutTablePanel.Paint += new System.Windows.Forms.PaintEventHandler(this.layoutTablePanel_Paint);
             // 
             // ColorPanel
             // 
+            this.ColorPanel.Controls.Add(this.TogglePreviewButton);
             this.ColorPanel.Controls.Add(this.ProfileGroupBox);
             this.ColorPanel.Controls.Add(this.StabilizerGroup);
             this.ColorPanel.Controls.Add(this.minimizeStartCheckBox);
             this.ColorPanel.Controls.Add(this.DisplayCombo);
             this.ColorPanel.Controls.Add(this.DVLGroupBox);
             this.ColorPanel.Controls.Add(this.colorGroupBox);
-            this.ColorPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.ColorPanel.Location = new System.Drawing.Point(79, 3);
+            this.ColorPanel.Location = new System.Drawing.Point(3, 3);
             this.ColorPanel.Name = "ColorPanel";
             this.ColorPanel.Size = new System.Drawing.Size(652, 609);
             this.ColorPanel.TabIndex = 2;
@@ -632,6 +583,49 @@
             this.GammaLabel.Text = "Gamma";
             this.GammaLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
             // 
+            // PreviewGroupBox
+            // 
+            this.PreviewGroupBox.Controls.Add(this.PreviewPictureBox);
+            this.PreviewGroupBox.Controls.Add(this.CompareOriginalCheckBox);
+            this.PreviewGroupBox.Controls.Add(this.SampleImageComboBox);
+            this.PreviewGroupBox.Location = new System.Drawing.Point(661, 3);
+            this.PreviewGroupBox.Name = "PreviewGroupBox";
+            this.PreviewGroupBox.Size = new System.Drawing.Size(725, 609);
+            this.PreviewGroupBox.TabIndex = 3;
+            this.PreviewGroupBox.TabStop = false;
+            this.PreviewGroupBox.Text = "Preview";
+            // 
+            // PreviewPictureBox
+            // 
+            this.PreviewPictureBox.Location = new System.Drawing.Point(6, 56);
+            this.PreviewPictureBox.Name = "PreviewPictureBox";
+            this.PreviewPictureBox.Size = new System.Drawing.Size(711, 391);
+            this.PreviewPictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.PreviewPictureBox.TabIndex = 2;
+            this.PreviewPictureBox.TabStop = false;
+            // 
+            // CompareOriginalCheckBox
+            // 
+            this.CompareOriginalCheckBox.AutoSize = true;
+            this.CompareOriginalCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.CompareOriginalCheckBox.Location = new System.Drawing.Point(238, 23);
+            this.CompareOriginalCheckBox.Name = "CompareOriginalCheckBox";
+            this.CompareOriginalCheckBox.Size = new System.Drawing.Size(44, 18);
+            this.CompareOriginalCheckBox.TabIndex = 1;
+            this.CompareOriginalCheckBox.Text = "원본";
+            this.CompareOriginalCheckBox.UseVisualStyleBackColor = true;
+            this.CompareOriginalCheckBox.CheckedChanged += new System.EventHandler(this.CompareOriginalCheckBox_CheckedChanged);
+            // 
+            // SampleImageComboBox
+            // 
+            this.SampleImageComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.SampleImageComboBox.FormattingEnabled = true;
+            this.SampleImageComboBox.Location = new System.Drawing.Point(6, 21);
+            this.SampleImageComboBox.Name = "SampleImageComboBox";
+            this.SampleImageComboBox.Size = new System.Drawing.Size(217, 22);
+            this.SampleImageComboBox.TabIndex = 0;
+            this.SampleImageComboBox.SelectedIndexChanged += new System.EventHandler(this.SampleImageComboBox_SelectedIndexChanged);
+            // 
             // trayIcon
             // 
             this.trayIcon.ContextMenuStrip = this.trayMenuStrip;
@@ -701,11 +695,21 @@
             this.dvlToolTip.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.dvlToolTip.ToolTipTitle = "Saturation";
             // 
+            // TogglePreviewButton
+            // 
+            this.TogglePreviewButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.TogglePreviewButton.Location = new System.Drawing.Point(505, 489);
+            this.TogglePreviewButton.Name = "TogglePreviewButton";
+            this.TogglePreviewButton.Size = new System.Drawing.Size(75, 23);
+            this.TogglePreviewButton.TabIndex = 21;
+            this.TogglePreviewButton.Text = "▶ 미리보기";
+            this.TogglePreviewButton.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(734, 615);
+            this.ClientSize = new System.Drawing.Size(1393, 615);
             this.Controls.Add(this.layoutTablePanel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -715,8 +719,6 @@
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.layoutTablePanel.ResumeLayout(false);
-            this.SideMenu.ResumeLayout(false);
-            this.SideMenu.PerformLayout();
             this.ColorPanel.ResumeLayout(false);
             this.ColorPanel.PerformLayout();
             this.ProfileGroupBox.ResumeLayout(false);
@@ -743,6 +745,9 @@
             this.gammaPanel.ResumeLayout(false);
             this.gammaPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.GammaBar)).EndInit();
+            this.PreviewGroupBox.ResumeLayout(false);
+            this.PreviewGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.PreviewPictureBox)).EndInit();
             this.trayMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -801,10 +806,12 @@
         private System.Windows.Forms.Button AddProfileButton;
         private System.Windows.Forms.GroupBox ProfileGroupBox;
         private System.Windows.Forms.Label profile_t1;
-        private System.Windows.Forms.ToolStrip SideMenu;
-        private System.Windows.Forms.ToolStripButton MiscsButton;
-        private System.Windows.Forms.ToolStripButton ColorButton;
         private System.Windows.Forms.Button RenameProfileButton;
+        private System.Windows.Forms.GroupBox PreviewGroupBox;
+        private System.Windows.Forms.PictureBox PreviewPictureBox;
+        private System.Windows.Forms.CheckBox CompareOriginalCheckBox;
+        private System.Windows.Forms.ComboBox SampleImageComboBox;
+        private System.Windows.Forms.Button TogglePreviewButton;
     }
 }
 
