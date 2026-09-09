@@ -32,6 +32,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.layoutTablePanel = new System.Windows.Forms.TableLayoutPanel();
             this.ColorPanel = new System.Windows.Forms.Panel();
+            this.TogglePreviewButton = new System.Windows.Forms.Button();
             this.ProfileGroupBox = new System.Windows.Forms.GroupBox();
             this.RenameProfileButton = new System.Windows.Forms.Button();
             this.profile_t1 = new System.Windows.Forms.Label();
@@ -84,7 +85,7 @@
             this.contrastToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.gammaToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.dvlToolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.TogglePreviewButton = new System.Windows.Forms.Button();
+            this.LutGraphPictureBox = new System.Windows.Forms.PictureBox();
             this.layoutTablePanel.SuspendLayout();
             this.ColorPanel.SuspendLayout();
             this.ProfileGroupBox.SuspendLayout();
@@ -107,6 +108,7 @@
             this.PreviewGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.PreviewPictureBox)).BeginInit();
             this.trayMenuStrip.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.LutGraphPictureBox)).BeginInit();
             this.SuspendLayout();
             // 
             // layoutTablePanel
@@ -140,6 +142,16 @@
             this.ColorPanel.Name = "ColorPanel";
             this.ColorPanel.Size = new System.Drawing.Size(652, 609);
             this.ColorPanel.TabIndex = 2;
+            // 
+            // TogglePreviewButton
+            // 
+            this.TogglePreviewButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.TogglePreviewButton.Location = new System.Drawing.Point(505, 489);
+            this.TogglePreviewButton.Name = "TogglePreviewButton";
+            this.TogglePreviewButton.Size = new System.Drawing.Size(75, 23);
+            this.TogglePreviewButton.TabIndex = 21;
+            this.TogglePreviewButton.Text = "▶ 미리보기";
+            this.TogglePreviewButton.UseVisualStyleBackColor = true;
             // 
             // ProfileGroupBox
             // 
@@ -585,6 +597,7 @@
             // 
             // PreviewGroupBox
             // 
+            this.PreviewGroupBox.Controls.Add(this.LutGraphPictureBox);
             this.PreviewGroupBox.Controls.Add(this.PreviewPictureBox);
             this.PreviewGroupBox.Controls.Add(this.CompareOriginalCheckBox);
             this.PreviewGroupBox.Controls.Add(this.SampleImageComboBox);
@@ -695,15 +708,14 @@
             this.dvlToolTip.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.dvlToolTip.ToolTipTitle = "Saturation";
             // 
-            // TogglePreviewButton
+            // LutGraphPictureBox
             // 
-            this.TogglePreviewButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.TogglePreviewButton.Location = new System.Drawing.Point(505, 489);
-            this.TogglePreviewButton.Name = "TogglePreviewButton";
-            this.TogglePreviewButton.Size = new System.Drawing.Size(75, 23);
-            this.TogglePreviewButton.TabIndex = 21;
-            this.TogglePreviewButton.Text = "▶ 미리보기";
-            this.TogglePreviewButton.UseVisualStyleBackColor = true;
+            this.LutGraphPictureBox.BackColor = System.Drawing.Color.Black;
+            this.LutGraphPictureBox.Location = new System.Drawing.Point(15, 453);
+            this.LutGraphPictureBox.Name = "LutGraphPictureBox";
+            this.LutGraphPictureBox.Size = new System.Drawing.Size(150, 150);
+            this.LutGraphPictureBox.TabIndex = 3;
+            this.LutGraphPictureBox.TabStop = false;
             // 
             // MainForm
             // 
@@ -749,6 +761,7 @@
             this.PreviewGroupBox.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.PreviewPictureBox)).EndInit();
             this.trayMenuStrip.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.LutGraphPictureBox)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -812,6 +825,7 @@
         private System.Windows.Forms.CheckBox CompareOriginalCheckBox;
         private System.Windows.Forms.ComboBox SampleImageComboBox;
         private System.Windows.Forms.Button TogglePreviewButton;
+        private System.Windows.Forms.PictureBox LutGraphPictureBox;
     }
 }
 

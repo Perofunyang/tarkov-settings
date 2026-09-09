@@ -2,14 +2,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.Linq;
 using System.Resources;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using tarkov_settings.GPU;
 using tarkov_settings.Setting;
+using tarkov_settings.GPU;
 
 namespace tarkov_settings
 {
@@ -31,10 +32,11 @@ namespace tarkov_settings
         private System.Windows.Forms.Timer _saveDebounceTimer;
         private ToolStripMenuItem _trayDynamicAdaptiveMenuItem;
 
-        // [미리보기 전용] 재사용 버퍼 (GC 메모리 생성 제로화로 슬라이더 렉 완전 제거)
+        // [미리보기 & 그래프 전용] 재사용 비트맵 버퍼
         private Dictionary<string, Bitmap> _sampleImages = new Dictionary<string, Bitmap>();
         private Bitmap _cachedRawSample = null;
         private Bitmap _cachedProcessedBitmap = null;
+        private Bitmap _graphBitmap = null; // LUT 그래프 전용 비트맵
         private byte[] _rawBuffer = null;
         private byte[] _workBuffer = null;
         private int _bufferStride = 0;
@@ -162,14 +164,13 @@ namespace tarkov_settings
         }
         #endregion
 
-        #region Built-in Sample Images & Real-time Image Renderer (제로 가비지 초고속 렌더러)
+        #region Built-in Sample Images & Real-time Image/Graph Renderer
         private void InitSampleImages()
         {
             _sampleImages.Clear();
 
             try
             {
-                // 1. 내장된 Resources.resx의 모든 리소스를 자동으로 읽어옴
                 ResourceSet resourceSet = Properties.Resources.ResourceManager.GetResourceSet(
                     CultureInfo.InvariantCulture, true, true);
 
@@ -177,31 +178,23 @@ namespace tarkov_settings
                 {
                     foreach (DictionaryEntry entry in resourceSet)
                     {
-                        // 리소스 항목이 이미지(Bitmap)인 경우만 자동 등록
                         if (entry.Value is Bitmap bmp)
                         {
                             string rawName = entry.Key.ToString();
-
-                            // 아이콘(Icon)이나 브랜드 로고 등 미리보기용이 아닌 특정 이미지 제외 필터
                             if (rawName.Equals("trayIcon", StringComparison.OrdinalIgnoreCase) ||
                                 rawName.Equals("ScreenSample", StringComparison.OrdinalIgnoreCase))
                             {
                                 continue;
                             }
 
-                            // 파일 이름의 '_'를 띄어쓰기로 바꿔서 보기 좋게 가공 (예: sample_day_woods -> sample day woods)
                             string displayName = rawName.Replace('_', ' ');
                             _sampleImages[displayName] = bmp;
                         }
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Sample Image Load Error] {ex.Message}");
-            }
+            catch { }
 
-            // 2. 만약 리소스에 사진이 아직 하나도 없다면 임시 기본 그래픽 3종 자동 생성
             if (_sampleImages.Count == 0)
             {
                 _sampleImages["1. 주간 수풀 맵 (Daylight)"] = CreateProceduralDaySample();
@@ -209,7 +202,6 @@ namespace tarkov_settings
                 _sampleImages["3. 인터체인지 실내 (Dark Interior)"] = CreateProceduralDarkSample();
             }
 
-            // 3. 드롭다운(ComboBox)에 사진 이름 목록 자동 채우기
             if (this.SampleImageComboBox != null)
             {
                 this.SampleImageComboBox.Items.Clear();
@@ -232,9 +224,6 @@ namespace tarkov_settings
             }
         }
 
-        /// <summary>
-        /// 사진 선택 시 재사용 버퍼를 1회만 할당하여 슬라이더 조작 중 GC 메모리 생성을 0으로 방지
-        /// </summary>
         private void SetCurrentSampleImage(Bitmap src)
         {
             if (src == null) return;
@@ -248,7 +237,7 @@ namespace tarkov_settings
             _cachedRawSample = new Bitmap(w, h, PixelFormat.Format24bppRgb);
             using (Graphics g = Graphics.FromImage(_cachedRawSample))
             {
-                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bilinear;
+                g.InterpolationMode = InterpolationMode.Bilinear;
                 g.DrawImage(src, 0, 0, w, h);
             }
 
@@ -278,17 +267,11 @@ namespace tarkov_settings
         }
 
         /// <summary>
-        /// 슬라이더 조작 시 0.2ms 만에 버퍼를 즉시 갱신 (메모리 생성 0바이트)
+        /// 슬라이더 조작 시 0.2ms 만에 사진과 256 LUT 곡선 그래프를 동시에 갱신
         /// </summary>
         private void RenderAndRefreshPreview()
         {
             if (!_isPreviewExpanded || _cachedRawSample == null || _rawBuffer == null) return;
-
-            if (this.CompareOriginalCheckBox != null && this.CompareOriginalCheckBox.Checked)
-            {
-                this.PreviewPictureBox.Image = _cachedRawSample;
-                return;
-            }
 
             // 1. 256 LUT 연산
             double b = Brightness;
@@ -305,7 +288,17 @@ namespace tarkov_settings
                 lut8[i] = (byte)(lut16[i] >> 8);
             }
 
-            // 2. 기존 메모리 버퍼에서 즉시 픽셀 변환 (GC 할당 0%)
+            // 2. [그래프 렌더링] 라벨 없이 순수 256 LUT 커브 선 그래프만 그리기
+            DrawLutGraph(lut8);
+
+            // '원본' 체크 시 보정 사진 연산 건너뛰기
+            if (this.CompareOriginalCheckBox != null && this.CompareOriginalCheckBox.Checked)
+            {
+                UpdateDisplayedImage();
+                return;
+            }
+
+            // 3. 제로 가비지 버퍼 기반 고속 픽셀 변환
             int len = _rawBuffer.Length;
             double satScale = 1.0 + (DVL / 50.0);
             bool hasDVL = (DVL != 0);
@@ -329,7 +322,6 @@ namespace tarkov_settings
                 _workBuffer[i + 2] = red;
             }
 
-            // 3. 비트맵에 초고속 복사
             BitmapData dstData = _cachedProcessedBitmap.LockBits(
                 new Rectangle(0, 0, _bufferWidth, _bufferHeight),
                 ImageLockMode.WriteOnly,
@@ -340,6 +332,78 @@ namespace tarkov_settings
             _cachedProcessedBitmap.UnlockBits(dstData);
 
             UpdateDisplayedImage();
+        }
+
+        /// <summary>
+        /// 256 LUT 밝기 커브 그래프 그리기 (라벨 없이 깔끔한 순수 곡선 차트)
+        /// </summary>
+        private void DrawLutGraph(byte[] lut8)
+        {
+            if (this.LutGraphPictureBox == null || !_isPreviewExpanded) return;
+
+            int w = this.LutGraphPictureBox.Width;
+            int h = this.LutGraphPictureBox.Height;
+            if (w <= 10 || h <= 10) return;
+
+            if (_graphBitmap == null || _graphBitmap.Width != w || _graphBitmap.Height != h)
+            {
+                _graphBitmap?.Dispose();
+                _graphBitmap = new Bitmap(w, h, PixelFormat.Format24bppRgb);
+            }
+
+            using (Graphics g = Graphics.FromImage(_graphBitmap))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+
+                // 1. 어두운 배경
+                g.Clear(Color.FromArgb(18, 19, 24));
+
+                int pad = 8;
+                int plotW = w - 2 * pad;
+                int plotH = h - 2 * pad;
+
+                // 2. 대각선 1:1 중립 기준선 (점선)
+                using (Pen dashedPen = new Pen(Color.FromArgb(60, 65, 75), 1))
+                {
+                    dashedPen.DashStyle = DashStyle.Dot;
+                    g.DrawLine(dashedPen, pad, h - pad, w - pad, pad);
+                }
+
+                // 3. 25%, 50%, 75% 그리드 격자선
+                using (Pen gridPen = new Pen(Color.FromArgb(32, 35, 42), 1))
+                {
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        float pos = pad + (plotW * (i / 4f));
+                        g.DrawLine(gridPen, pos, pad, pos, h - pad); // 수직선
+                        float posY = pad + (plotH * (i / 4f));
+                        g.DrawLine(gridPen, pad, posY, w - pad, posY); // 수평선
+                    }
+                }
+
+                // 4. 외곽 테두리
+                using (Pen borderPen = new Pen(Color.FromArgb(48, 52, 62), 1))
+                {
+                    g.DrawRectangle(borderPen, pad, pad, plotW, plotH);
+                }
+
+                // 5. 256개 지점 LUT 변환 곡선 그리기 (에메랄드 그린)
+                PointF[] points = new PointF[256];
+                for (int i = 0; i < 256; i++)
+                {
+                    float x = pad + ((float)i / 255f) * plotW;
+                    float yVal = lut8[i];
+                    float y = (h - pad) - (yVal / 255f) * plotH;
+                    points[i] = new PointF(x, y);
+                }
+
+                using (Pen curvePen = new Pen(Color.FromArgb(0, 255, 136), 2f))
+                {
+                    g.DrawLines(curvePen, points);
+                }
+            }
+
+            this.LutGraphPictureBox.Image = _graphBitmap;
         }
 
         private void UpdateDisplayedImage()
@@ -807,7 +871,7 @@ namespace tarkov_settings
             {
                 SyncUIToCurrentProfile();
                 ColorController.Instance.ApplyColorSettings();
-                if (_isPreviewExpanded) RenderAndRefreshPreview(); // 제로 가비지 0.2ms 즉시 렌더링!
+                if (_isPreviewExpanded) RenderAndRefreshPreview();
                 ScheduleSave();
             }
         }
