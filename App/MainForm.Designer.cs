@@ -73,6 +73,7 @@
             this.GammaBar = new System.Windows.Forms.TrackBar();
             this.GammaLabel = new System.Windows.Forms.Label();
             this.PreviewGroupBox = new System.Windows.Forms.GroupBox();
+            this.LutGraphPictureBox = new System.Windows.Forms.PictureBox();
             this.PreviewPictureBox = new System.Windows.Forms.PictureBox();
             this.CompareOriginalCheckBox = new System.Windows.Forms.CheckBox();
             this.SampleImageComboBox = new System.Windows.Forms.ComboBox();
@@ -85,7 +86,6 @@
             this.contrastToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.gammaToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.dvlToolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.LutGraphPictureBox = new System.Windows.Forms.PictureBox();
             this.layoutTablePanel.SuspendLayout();
             this.ColorPanel.SuspendLayout();
             this.ProfileGroupBox.SuspendLayout();
@@ -106,9 +106,9 @@
             this.gammaPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.GammaBar)).BeginInit();
             this.PreviewGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.LutGraphPictureBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.PreviewPictureBox)).BeginInit();
             this.trayMenuStrip.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.LutGraphPictureBox)).BeginInit();
             this.SuspendLayout();
             // 
             // layoutTablePanel
@@ -608,6 +608,15 @@
             this.PreviewGroupBox.TabStop = false;
             this.PreviewGroupBox.Text = "Preview";
             // 
+            // LutGraphPictureBox
+            // 
+            this.LutGraphPictureBox.BackColor = System.Drawing.Color.Black;
+            this.LutGraphPictureBox.Location = new System.Drawing.Point(15, 453);
+            this.LutGraphPictureBox.Name = "LutGraphPictureBox";
+            this.LutGraphPictureBox.Size = new System.Drawing.Size(150, 150);
+            this.LutGraphPictureBox.TabIndex = 3;
+            this.LutGraphPictureBox.TabStop = false;
+            // 
             // PreviewPictureBox
             // 
             this.PreviewPictureBox.Location = new System.Drawing.Point(6, 56);
@@ -708,15 +717,6 @@
             this.dvlToolTip.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.dvlToolTip.ToolTipTitle = "Saturation";
             // 
-            // LutGraphPictureBox
-            // 
-            this.LutGraphPictureBox.BackColor = System.Drawing.Color.Black;
-            this.LutGraphPictureBox.Location = new System.Drawing.Point(15, 453);
-            this.LutGraphPictureBox.Name = "LutGraphPictureBox";
-            this.LutGraphPictureBox.Size = new System.Drawing.Size(150, 150);
-            this.LutGraphPictureBox.TabIndex = 3;
-            this.LutGraphPictureBox.TabStop = false;
-            // 
             // MainForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -759,9 +759,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.GammaBar)).EndInit();
             this.PreviewGroupBox.ResumeLayout(false);
             this.PreviewGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.LutGraphPictureBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.PreviewPictureBox)).EndInit();
             this.trayMenuStrip.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.LutGraphPictureBox)).EndInit();
             this.ResumeLayout(false);
 
         }
