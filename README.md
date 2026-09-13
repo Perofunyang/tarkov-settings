@@ -1,5 +1,5 @@
 # tarkov-settings
-![screenshot](./ScreenSample.png)
+![screenshot](./ScreenSample-1600.png)
 
 ## [->**DOWNLOAD Latest**<-](https://github.com/Perofunyang/tarkov-settings/releases/latest)
 
