@@ -61,7 +61,8 @@ You can change and configure any of the following settings:
 - [x] Change display (monitor) target
 - [x] Minimize to tray & Tray Context Menu Quick Toggle
 - [x] Profiles
-- [ ] Presets
+- [x] Presets
+- [x] Preview
 - [ ] Hot Keys
 - [ ] EFT setting modify (Framelimit or Graphic Settings)
 
