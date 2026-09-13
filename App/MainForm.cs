@@ -76,17 +76,6 @@ namespace tarkov_settings
             PopulateProfileComboBox();
             #endregion
 
-            // 이벤트 연결
-            if (this.AddProfileButton != null) this.AddProfileButton.Click += AddProfileButton_Click;
-            if (this.DeleteProfileButton != null) this.DeleteProfileButton.Click += DeleteProfileButton_Click;
-            if (this.RenameProfileButton != null) this.RenameProfileButton.Click += RenameProfileButton_Click;
-            if (this.ProfileComboBox != null) this.ProfileComboBox.SelectedIndexChanged += ProfileComboBox_SelectedIndexChanged;
-            if (this.TargetProcessTextBox != null) this.TargetProcessTextBox.TextChanged += TargetProcessTextBox_TextChanged;
-            if (this.ProfileEnabledCheckBox != null) this.ProfileEnabledCheckBox.CheckedChanged += ProfileEnabledCheckBox_CheckedChanged;
-            if (this.SampleImageComboBox != null) this.SampleImageComboBox.SelectedIndexChanged += SampleImageComboBox_SelectedIndexChanged;
-            if (this.CompareOriginalCheckBox != null) this.CompareOriginalCheckBox.CheckedChanged += CompareOriginalCheckBox_CheckedChanged;
-            if (this.TogglePreviewButton != null) this.TogglePreviewButton.Click += TogglePreviewButton_Click;
-
             // 트레이 메뉴
             _trayDynamicAdaptiveMenuItem = new ToolStripMenuItem("Dynamic Adaptive Boost")
             {
