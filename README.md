@@ -63,6 +63,8 @@ You can change and configure any of the following settings:
 - [x] Profiles
 - [x] Presets
 - [x] Preview
+- [x] Filters
+- [x] Sharpen
 - [ ] Hot Keys
 - [ ] EFT setting modify (Framelimit or Graphic Settings)
 
