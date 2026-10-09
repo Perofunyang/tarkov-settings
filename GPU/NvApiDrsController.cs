@@ -34,6 +34,8 @@ namespace tarkov_settings.GPU
         private delegate int NvAPI_DRS_FindProfileByName_t(IntPtr hSession, ref NVAPI_UNICODE_STRING pProfileName, out IntPtr phProfile);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate int NvAPI_DRS_SetSetting_t(IntPtr hSession, IntPtr hProfile, ref NVDRS_SETTING pSetting);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate int NvAPI_DRS_DeleteProfileSetting_t(IntPtr hSession, IntPtr hProfile, uint settingId);
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct NVAPI_UNICODE_STRING
@@ -65,6 +67,9 @@ namespace tarkov_settings.GPU
         private const uint NIS_SHARPEN_VALUE = 0x00ABAB21;
         #endregion
 
+        /// <summary>
+        /// 전역(Base) 설정은 순정으로 복구하고, 오직 타르코프 게임 프로필에만 클래식 샤프닝을 격리 주입합니다.
+        /// </summary>
         public static bool ApplySharpening(int sharpenPercent)
         {
             try
@@ -82,6 +87,7 @@ namespace tarkov_settings.GPU
                 IntPtr pGetBaseProfile = QueryInterface(0xC2266519);
                 IntPtr pFindProfile = QueryInterface(0x7E4A11B8);
                 IntPtr pSetSetting = QueryInterface(0x577DD202);
+                IntPtr pDeleteSetting = QueryInterface(0x3D64550F);
 
                 if (pCreateSession == IntPtr.Zero || pSaveSettings == IntPtr.Zero) return false;
 
@@ -92,6 +98,7 @@ namespace tarkov_settings.GPU
                 var drsGetBase = (NvAPI_DRS_GetBaseProfile_t)Marshal.GetDelegateForFunctionPointer(pGetBaseProfile, typeof(NvAPI_DRS_GetBaseProfile_t));
                 var drsFind = (NvAPI_DRS_FindProfileByName_t)Marshal.GetDelegateForFunctionPointer(pFindProfile, typeof(NvAPI_DRS_FindProfileByName_t));
                 var drsSet = (NvAPI_DRS_SetSetting_t)Marshal.GetDelegateForFunctionPointer(pSetSetting, typeof(NvAPI_DRS_SetSetting_t));
+                var drsDelete = (pDeleteSetting != IntPtr.Zero) ? (NvAPI_DRS_DeleteProfileSetting_t)Marshal.GetDelegateForFunctionPointer(pDeleteSetting, typeof(NvAPI_DRS_DeleteProfileSetting_t)) : null;
 
                 if (drsCreate(out IntPtr hSession) != 0) return false;
 
@@ -99,26 +106,40 @@ namespace tarkov_settings.GPU
                 {
                     drsLoad(hSession);
 
-                    // 1. [중요] 전역(Base) 프로필에 잘못 켜졌던 샤프닝/NIS를 완전히 꺼서 크롬/바탕화면 깜빡임 원천 차단
+                    // 1. [자동 자가치유] 전역(Base Profile)에 걸렸던 샤프닝/NIS 오버라이드를 삭제하여 바탕화면/크롬 깜빡임 원천 박멸
                     if (drsGetBase(hSession, out IntPtr hBaseProfile) == 0)
                     {
-                        SetDword(drsSet, hSession, hBaseProfile, SHARPEN_FILTER_EN, 0u);
-                        SetDword(drsSet, hSession, hBaseProfile, NIS_ENABLE, 0u);
+                        if (drsDelete != null)
+                        {
+                            drsDelete(hSession, hBaseProfile, SHARPEN_FILTER_EN);
+                            drsDelete(hSession, hBaseProfile, SHARPEN_FILTER_VALUE);
+                            drsDelete(hSession, hBaseProfile, SHARPEN_FILTER_DENOISE);
+                            drsDelete(hSession, hBaseProfile, NIS_ENABLE);
+                            drsDelete(hSession, hBaseProfile, NIS_SHARPEN_VALUE);
+                        }
+                        else
+                        {
+                            SetDword(drsSet, hSession, hBaseProfile, SHARPEN_FILTER_EN, 0u);
+                            SetDword(drsSet, hSession, hBaseProfile, NIS_ENABLE, 0u);
+                        }
                     }
 
-                    // 2. [핵심] 오직 'Escape from Tarkov' 전용 프로필을 찾아서 거기에만 단독 주입
-                    var uName = new NVAPI_UNICODE_STRING { Value = "Escape from Tarkov" };
-                    IntPtr hTarkovProfile = IntPtr.Zero;
+                    // 2. [타르코프 전용 격리 주입] "Escape from Tarkov" 엔비디아 공식 프로필에만 단독 적용
+                    string[] tarkovProfiles = { "Escape from Tarkov", "Escape from Tarkov: Arena" };
+                    uint isEnable = (sharpenPercent > 0) ? 1u : 0u;
+                    uint val = (uint)Math.Max(0, Math.Min(100, sharpenPercent));
 
-                    if (drsFind(hSession, ref uName, out hTarkovProfile) == 0 && hTarkovProfile != IntPtr.Zero)
+                    foreach (var name in tarkovProfiles)
                     {
-                        uint isEnable = (sharpenPercent > 0) ? 1u : 0u;
-                        uint val = (uint)Math.Max(0, Math.Min(100, sharpenPercent));
-
-                        SetDword(drsSet, hSession, hTarkovProfile, SHARPEN_FILTER_EN, isEnable);
-                        SetDword(drsSet, hSession, hTarkovProfile, SHARPEN_FILTER_VALUE, val);
-                        SetDword(drsSet, hSession, hTarkovProfile, SHARPEN_FILTER_DENOISE, 15u);
-                        SetDword(drsSet, hSession, hTarkovProfile, NIS_ENABLE, 0u); // 타일 버그 차단
+                        var uName = new NVAPI_UNICODE_STRING { Value = name };
+                        if (drsFind(hSession, ref uName, out IntPtr hTargetProfile) == 0 && hTargetProfile != IntPtr.Zero)
+                        {
+                            // 순수 클래식 샤프닝만 주입 (지형 까만 네모 깜빡임 0%)
+                            SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_EN, isEnable);
+                            SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_VALUE, val);
+                            SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_DENOISE, 15u);
+                            SetDword(drsSet, hSession, hTargetProfile, NIS_ENABLE, 0u); // NIS는 무조건 0으로 차단
+                        }
                     }
 
                     drsSave(hSession);
@@ -129,7 +150,10 @@ namespace tarkov_settings.GPU
                     drsDestroy(hSession);
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NvApiDrs Exception] {ex.Message}");
+            }
             return false;
         }
 
