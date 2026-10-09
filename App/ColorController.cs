@@ -254,11 +254,13 @@ namespace tarkov_settings
                 factor = Math.Min(Math.Max(factor, 0.0), 1.0);
                 factor = Math.Pow(factor, 1.0 / gamma);
 
-                // 1. 단조 증가 블랙 스태빌라이저
+                // 1. 단조 증가 블랙 스태빌라이저 (토우 보존 암부 발굴)
+                // 완전 칠흑(0)의 회색 들뜸을 막고, 적이 숨은 어두운 음영(0.05~0.25)만 핀포인트로 발굴
                 if (effectiveBlack > 0)
                 {
-                    double blackWeight = Math.Pow(1.0 - factor, 2.0);
-                    factor += (effectiveBlack * 0.35 * blackWeight);
+                    // factor가 0에 가까울 때는 바닥을 지키고, 어두운 디테일만 볼록하게 띄우는 벨 커브 가중치
+                    double shadowPocket = Math.Pow(factor, 0.45) * Math.Pow(1.0 - factor, 1.8);
+                    factor += (effectiveBlack * 0.45 * shadowPocket);
                 }
 
                 // 2. 소프트 니 화이트 스태빌라이저
@@ -275,22 +277,24 @@ namespace tarkov_settings
                 double g = factor;
                 double b = factor;
 
-                // 3. 안개 억제 (Dehaze)
+                // 3. 안개 억제 (Dehaze): 붕 뜬 로우-미드톤을 눌러 쨍한 콘트라스트 복원
                 if (normDehaze > 0.001)
                 {
                     double fogMask = 4.0 * factor * Math.Pow(Math.Max(0.0, 1.0 - factor), 1.6);
-                    r -= (0.03 * normDehaze * fogMask);
-                    g -= (0.11 * normDehaze * fogMask);
-                    b -= (0.20 * normDehaze * fogMask);
+                    // 안개 장막을 확실하게 도려내도록 감산 파워를 0.12 -> 0.22로 강화
+                    double dehazeCut = 0.22 * normDehaze * fogMask;
+                    r -= dehazeCut;
+                    g -= dehazeCut;
+                    b -= dehazeCut;
                 }
 
-                // 4. 수풀 적 분리 (Foliage Pop)
+                // 4. 수풀 적 분리 (Foliage Pop): 중립 회색을 보존하는 식생 억제
+                // 붉은기 폭발의 원인이던 과도한 Red 부스팅을 억제하고, 녹색 미드톤만 부드럽게 진정
                 if (normFoliage > 0.001)
                 {
                     double foliageMask = Math.Sin(Math.PI * factor);
-                    r *= (1.0 + (0.16 * normFoliage * foliageMask));
-                    g *= (1.0 - (0.22 * normFoliage * foliageMask));
-                    b *= (1.0 + (0.08 * normFoliage * foliageMask));
+                    g *= (1.0 - (0.09 * normFoliage * foliageMask)); // 눈 아픈 녹색 중간톤만 차분하게 억제
+                    r *= (1.0 + (0.02 * normFoliage * foliageMask)); // 인체 윤곽선만 아주 미세하게 보존
                 }
 
                 // 5. 단조 증가 클램핑

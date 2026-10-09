@@ -688,16 +688,16 @@ namespace tarkov_settings
                 Name = newName,
                 IsEnabled = true,
                 TargetProcesses = new List<string> { "GameProcessName" },
-                Brightness = 45.0,
+                Brightness = 50.0,
                 Contrast = 50.0,
-                Gamma = 1.70,
-                Saturation = 40,
-                BlackStabilizer = 30.0,
-                WhiteStabilizer = 25.0,
+                Gamma = 1.00,
+                Saturation = 0,
+                BlackStabilizer = 0.0,
+                WhiteStabilizer = 0.0,
                 IsDynamicAdaptive = false,
-                Dehaze = 20.0,
-                FoliagePop = 25.0,
-                Sharpening = 50
+                Dehaze = 0.0,
+                FoliagePop = 0.0,
+                Sharpening = 0
             };
 
             appSetting.Profiles.Add(newProfile);

@@ -101,14 +101,14 @@ namespace tarkov_settings.GPU
                         uint isEnable = (sharpenPercent > 0) ? 1u : 0u;
                         uint val = (uint)Math.Max(0, Math.Min(100, sharpenPercent));
 
-                        // 1. Classic Image Sharpening 주입
+                        // 1. [순수 드라이버 샤프닝] 단독 적용 (깜빡임 버그 0%, 프레임 손실 0%)
                         SetDword(drsSet, hSession, hProfile, SHARPEN_FILTER_EN, isEnable);
                         SetDword(drsSet, hSession, hProfile, SHARPEN_FILTER_VALUE, val);
                         SetDword(drsSet, hSession, hProfile, SHARPEN_FILTER_DENOISE, 15u);
 
-                        // 2. Modern NIS (NVIDIA Image Scaling) 주입
-                        SetDword(drsSet, hSession, hProfile, NIS_ENABLE, isEnable);
-                        SetDword(drsSet, hSession, hProfile, NIS_SHARPEN_VALUE, val);
+                        // 2. [핵심] 까만 네모 깜빡임의 주범인 NIS(이미지 스케일러 타일 연산)는 무조건 OFF(0)로 강제 차단!
+                        SetDword(drsSet, hSession, hProfile, NIS_ENABLE, 0u);
+                        SetDword(drsSet, hSession, hProfile, NIS_SHARPEN_VALUE, 0u);
 
                         drsSave(hSession);
                         return true;
