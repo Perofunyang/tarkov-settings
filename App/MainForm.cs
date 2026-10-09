@@ -23,20 +23,17 @@ namespace tarkov_settings
         private bool minimizeOnStart = false;
         private bool _isLoadingProfile = false;
 
-        // [접이식 창 너비 상수]
         private const int COLLAPSED_WIDTH = 665;
         private const int EXPANDED_WIDTH = 1393;
         private bool _isPreviewExpanded = false;
 
-        // 디스크 과부하 방지 지연 저장 타이머 (1초)
         private System.Windows.Forms.Timer _saveDebounceTimer;
         private ToolStripMenuItem _trayDynamicAdaptiveMenuItem;
 
-        // [미리보기 & 그래프 전용] 재사용 비트맵 버퍼
         private Dictionary<string, Bitmap> _sampleImages = new Dictionary<string, Bitmap>();
         private Bitmap _cachedRawSample = null;
         private Bitmap _cachedProcessedBitmap = null;
-        private Bitmap _graphBitmap = null; // LUT 그래프 전용 비트맵
+        private Bitmap _graphBitmap = null;
         private byte[] _rawBuffer = null;
         private byte[] _workBuffer = null;
         private int _bufferStride = 0;
@@ -48,7 +45,7 @@ namespace tarkov_settings
             get
             {
                 CreateParams cp = base.CreateParams;
-                cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED (깜빡임 완전 제거)
+                cp.ExStyle |= 0x02000000;
                 return cp;
             }
         }
@@ -76,10 +73,6 @@ namespace tarkov_settings
             PopulateProfileComboBox();
             #endregion
 
-            // 이벤트 연결
-            //if (this.AddProfileButton != null) this.AddProfileButton.Click += AddProfileButton_Click;
-            //if (this.DeleteProfileButton != null) this.DeleteProfileButton.Click += DeleteProfileButton_Click;
-            //if (this.RenameProfileButton != null) this.RenameProfileButton.Click += RenameProfileButton_Click;
             if (this.ProfileComboBox != null) this.ProfileComboBox.SelectedIndexChanged += ProfileComboBox_SelectedIndexChanged;
             if (this.TargetProcessTextBox != null) this.TargetProcessTextBox.TextChanged += TargetProcessTextBox_TextChanged;
             if (this.ProfileEnabledCheckBox != null) this.ProfileEnabledCheckBox.CheckedChanged += ProfileEnabledCheckBox_CheckedChanged;
@@ -87,7 +80,6 @@ namespace tarkov_settings
             if (this.CompareOriginalCheckBox != null) this.CompareOriginalCheckBox.CheckedChanged += CompareOriginalCheckBox_CheckedChanged;
             if (this.TogglePreviewButton != null) this.TogglePreviewButton.Click += TogglePreviewButton_Click;
 
-            // 트레이 메뉴
             _trayDynamicAdaptiveMenuItem = new ToolStripMenuItem("Dynamic Adaptive Boost")
             {
                 CheckOnClick = true,
@@ -121,8 +113,6 @@ namespace tarkov_settings
             #endregion
 
             InitSampleImages();
-
-            // 시작 시 접힌 상태로 시작
             SetPreviewExpanded(false);
 
             pMonitor.Parent = this;
@@ -266,48 +256,48 @@ namespace tarkov_settings
             UpdateDisplayedImage();
         }
 
-        /// <summary>
-        /// 슬라이더 조작 시 0.2ms 만에 사진과 256 LUT 곡선 그래프를 동시에 갱신
-        /// </summary>
         private void RenderAndRefreshPreview()
         {
             if (!_isPreviewExpanded || _cachedRawSample == null || _rawBuffer == null) return;
 
-            // 1. 256 LUT 연산
-            double b = Brightness;
-            double c = Contrast;
-            double g = Gamma;
-            double black = BlackStabilizer;
-            double white = WhiteStabilizer;
-            float dynamicBoost = ColorController.Instance.CurrentDynamicBoost;
+            var (r16, g16, b16) = ColorController.CalculateLUT(
+                Brightness,
+                Contrast,
+                Gamma,
+                BlackStabilizer,
+                WhiteStabilizer,
+                ColorController.Instance.CurrentDynamicBoost,
+                Dehaze,
+                FoliagePop
+            );
 
-            ushort[] lut16 = ColorController.CalculateLUT(b, c, g, black, white, dynamicBoost);
-            byte[] lut8 = new byte[256];
+            byte[] lutR = new byte[256];
+            byte[] lutG = new byte[256];
+            byte[] lutB = new byte[256];
             for (int i = 0; i < 256; i++)
             {
-                lut8[i] = (byte)(lut16[i] >> 8);
+                lutR[i] = (byte)(r16[i] >> 8);
+                lutG[i] = (byte)(g16[i] >> 8);
+                lutB[i] = (byte)(b16[i] >> 8);
             }
 
-            // 2. [그래프 렌더링] 라벨 없이 순수 256 LUT 커브 선 그래프만 그리기
-            DrawLutGraph(lut8);
+            DrawLutGraph(lutR, lutG, lutB);
 
-            // '원본' 체크 시 보정 사진 연산 건너뛰기
             if (this.CompareOriginalCheckBox != null && this.CompareOriginalCheckBox.Checked)
             {
                 UpdateDisplayedImage();
                 return;
             }
 
-            // 3. 제로 가비지 버퍼 기반 고속 픽셀 변환
             int len = _rawBuffer.Length;
             double satScale = 1.0 + (DVL / 50.0);
             bool hasDVL = (DVL != 0);
 
             for (int i = 0; i < len; i += 3)
             {
-                byte blue = lut8[_rawBuffer[i]];
-                byte green = lut8[_rawBuffer[i + 1]];
-                byte red = lut8[_rawBuffer[i + 2]];
+                byte blue = lutB[_rawBuffer[i]];
+                byte green = lutG[_rawBuffer[i + 1]];
+                byte red = lutR[_rawBuffer[i + 2]];
 
                 if (hasDVL)
                 {
@@ -334,10 +324,7 @@ namespace tarkov_settings
             UpdateDisplayedImage();
         }
 
-        /// <summary>
-        /// 256 LUT 밝기 커브 그래프 그리기 (라벨 없이 깔끔한 순수 곡선 차트)
-        /// </summary>
-        private void DrawLutGraph(byte[] lut8)
+        private void DrawLutGraph(byte[] lutR, byte[] lutG, byte[] lutB)
         {
             if (this.LutGraphPictureBox == null || !_isPreviewExpanded) return;
 
@@ -354,52 +341,63 @@ namespace tarkov_settings
             using (Graphics g = Graphics.FromImage(_graphBitmap))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-
-                // 1. 어두운 배경
                 g.Clear(Color.FromArgb(18, 19, 24));
 
                 int pad = 8;
                 int plotW = w - 2 * pad;
                 int plotH = h - 2 * pad;
 
-                // 2. 대각선 1:1 중립 기준선 (점선)
                 using (Pen dashedPen = new Pen(Color.FromArgb(60, 65, 75), 1))
                 {
                     dashedPen.DashStyle = DashStyle.Dot;
                     g.DrawLine(dashedPen, pad, h - pad, w - pad, pad);
                 }
 
-                // 3. 25%, 50%, 75% 그리드 격자선
                 using (Pen gridPen = new Pen(Color.FromArgb(32, 35, 42), 1))
                 {
                     for (int i = 1; i <= 3; i++)
                     {
                         float pos = pad + (plotW * (i / 4f));
-                        g.DrawLine(gridPen, pos, pad, pos, h - pad); // 수직선
+                        g.DrawLine(gridPen, pos, pad, pos, h - pad);
                         float posY = pad + (plotH * (i / 4f));
-                        g.DrawLine(gridPen, pad, posY, w - pad, posY); // 수평선
+                        g.DrawLine(gridPen, pad, posY, w - pad, posY);
                     }
                 }
 
-                // 4. 외곽 테두리
                 using (Pen borderPen = new Pen(Color.FromArgb(48, 52, 62), 1))
                 {
                     g.DrawRectangle(borderPen, pad, pad, plotW, plotH);
                 }
 
-                // 5. 256개 지점 LUT 변환 곡선 그리기 (에메랄드 그린)
-                PointF[] points = new PointF[256];
+                PointF[] ptsR = new PointF[256];
+                PointF[] ptsG = new PointF[256];
+                PointF[] ptsB = new PointF[256];
+
+                bool isSame = true;
                 for (int i = 0; i < 256; i++)
                 {
                     float x = pad + ((float)i / 255f) * plotW;
-                    float yVal = lut8[i];
-                    float y = (h - pad) - (yVal / 255f) * plotH;
-                    points[i] = new PointF(x, y);
+                    ptsR[i] = new PointF(x, (h - pad) - (lutR[i] / 255f) * plotH);
+                    ptsG[i] = new PointF(x, (h - pad) - (lutG[i] / 255f) * plotH);
+                    ptsB[i] = new PointF(x, (h - pad) - (lutB[i] / 255f) * plotH);
+
+                    if (lutR[i] != lutG[i] || lutG[i] != lutB[i])
+                        isSame = false;
                 }
 
-                using (Pen curvePen = new Pen(Color.FromArgb(0, 255, 136), 2f))
+                if (isSame)
                 {
-                    g.DrawLines(curvePen, points);
+                    using (Pen curvePen = new Pen(Color.FromArgb(0, 255, 136), 2f))
+                        g.DrawLines(curvePen, ptsG);
+                }
+                else
+                {
+                    using (Pen bPen = new Pen(Color.FromArgb(70, 130, 255), 1.5f))
+                        g.DrawLines(bPen, ptsB);
+                    using (Pen gPen = new Pen(Color.FromArgb(0, 255, 136), 1.5f))
+                        g.DrawLines(gPen, ptsG);
+                    using (Pen rPen = new Pen(Color.FromArgb(255, 75, 75), 1.5f))
+                        g.DrawLines(rPen, ptsR);
                 }
             }
 
@@ -420,7 +418,7 @@ namespace tarkov_settings
             }
         }
 
-        #region 기본 테스트용 샘플 사진 생성기
+        #region Procedural Sample Generators
         private Bitmap CreateProceduralDaySample()
         {
             Bitmap bmp = new Bitmap(640, 360, PixelFormat.Format24bppRgb);
@@ -447,7 +445,6 @@ namespace tarkov_settings
                     gfx.FillRectangle(b, 40, 180, 150, 140);
                 using (Brush b = new SolidBrush(Color.FromArgb(30, 50, 35)))
                     gfx.DrawString("어두운 모퉁이", new Font("Consolas", 11, FontStyle.Bold), b, 50, 240);
-
                 using (Brush b = new SolidBrush(Color.FromArgb(230, 255, 240)))
                     gfx.FillEllipse(b, 460, 120, 150, 150);
             }
@@ -488,6 +485,18 @@ namespace tarkov_settings
             if (string.IsNullOrEmpty(processName) || appSetting?.Profiles == null)
                 return null;
 
+            // [1순위] 현재 UI에서 선택된 프로필이 이 프로세스를 포함하면 최우선 적용
+            var current = CurrentProfile;
+            if (current != null && current.IsEnabled && current.TargetProcesses != null)
+            {
+                if (current.TargetProcesses.Any(target =>
+                    string.Equals(target.Trim(), processName.Trim(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    return current;
+                }
+            }
+
+            // [2순위] 목록 순서대로 첫 번째 매칭 프로필 탐색
             foreach (var profile in appSetting.Profiles)
             {
                 if (!profile.IsEnabled || profile.TargetProcesses == null)
@@ -527,7 +536,6 @@ namespace tarkov_settings
         private void LoadProfileToUI(Profile profile)
         {
             if (profile == null) return;
-
             _isLoadingProfile = true;
 
             Brightness = profile.Brightness;
@@ -537,16 +545,20 @@ namespace tarkov_settings
             BlackStabilizer = profile.BlackStabilizer;
             WhiteStabilizer = profile.WhiteStabilizer;
             IsDynamicAdaptive = profile.IsDynamicAdaptive;
+            Dehaze = profile.Dehaze;
+            FoliagePop = profile.FoliagePop;
 
             TargetProcessTextBox.Text = string.Join(", ", profile.TargetProcesses);
             ProfileEnabledCheckBox.Checked = profile.IsEnabled;
 
-            BrightnessText.Text = profile.Brightness.ToString("0.00");
-            ContrastText.Text = profile.Contrast.ToString("0.00");
+            BrightnessText.Text = ((int)profile.Brightness).ToString();
+            ContrastText.Text = ((int)profile.Contrast).ToString();
             GammaText.Text = profile.Gamma.ToString("0.00");
             DVLText.Text = profile.Saturation.ToString();
             BlackStabilizerText.Text = profile.BlackStabilizer.ToString();
             WhiteStabilizerText.Text = profile.WhiteStabilizer.ToString();
+            if (DehazeText != null) DehazeText.Text = ((int)profile.Dehaze).ToString();
+            if (FoliageText != null) FoliageText.Text = ((int)profile.FoliagePop).ToString();
 
             var cController = ColorController.Instance;
             cController.Brightness = profile.Brightness;
@@ -555,13 +567,11 @@ namespace tarkov_settings
             cController.BlackStabilizer = profile.BlackStabilizer;
             cController.WhiteStabilizer = profile.WhiteStabilizer;
             cController.IsDynamicAdaptive = profile.IsDynamicAdaptive;
+            cController.Dehaze = profile.Dehaze;
+            cController.FoliagePop = profile.FoliagePop;
 
             _isLoadingProfile = false;
-
-            if (_isPreviewExpanded)
-            {
-                RenderAndRefreshPreview();
-            }
+            if (_isPreviewExpanded) RenderAndRefreshPreview();
         }
 
         private void ProfileComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -585,7 +595,6 @@ namespace tarkov_settings
             }
 
             string newName = ShowInputDialog("새 프로필의 이름을 입력하세요:", "새 프로필 생성", defaultName);
-
             if (string.IsNullOrWhiteSpace(newName)) return;
 
             if (appSetting.Profiles.Any(p => p.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
@@ -599,13 +608,15 @@ namespace tarkov_settings
                 Name = newName,
                 IsEnabled = true,
                 TargetProcesses = new List<string> { "GameProcessName" },
-                Brightness = 0.50,
-                Contrast = 0.50,
+                Brightness = 50.0,
+                Contrast = 50.0,
                 Gamma = 1.00,
                 Saturation = 0,
                 BlackStabilizer = 0,
                 WhiteStabilizer = 0,
-                IsDynamicAdaptive = false
+                IsDynamicAdaptive = false,
+                Dehaze = 0,
+                FoliagePop = 0
             };
 
             appSetting.Profiles.Add(newProfile);
@@ -696,6 +707,8 @@ namespace tarkov_settings
             CurrentProfile.BlackStabilizer = BlackStabilizer;
             CurrentProfile.WhiteStabilizer = WhiteStabilizer;
             CurrentProfile.IsDynamicAdaptive = IsDynamicAdaptive;
+            CurrentProfile.Dehaze = Dehaze;
+            CurrentProfile.FoliagePop = FoliagePop;
         }
 
         private static string ShowInputDialog(string prompt, string title, string defaultValue = "")
@@ -753,14 +766,14 @@ namespace tarkov_settings
         #region BCGS Getter/Setter
         public double Brightness
         {
-            get => BrightnessBar.Value / 100.0;
-            set => BrightnessBar.Value = (int)(value * 100);
+            get => BrightnessBar != null ? BrightnessBar.Value : 50;
+            set { if (BrightnessBar != null) BrightnessBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
         }
 
         public double Contrast
         {
-            get => ContrastBar.Value / 100.0;
-            set => ContrastBar.Value = (int)(value * 100);
+            get => ContrastBar != null ? ContrastBar.Value : 50;
+            set { if (ContrastBar != null) ContrastBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
         }
 
         public double Gamma
@@ -793,14 +806,16 @@ namespace tarkov_settings
             set => DynamicAdaptiveCheckBox.Checked = value;
         }
 
-        public (double, double, double, int) GetColorValue()
+        public double Dehaze
         {
-            return (
-                BrightnessBar.Value / 100.0,
-                ContrastBar.Value / 100.0,
-                GammaBar.Value / 100.0,
-                DVLBar.Value
-                );
+            get => DehazeBar != null ? DehazeBar.Value : 0;
+            set { if (DehazeBar != null) DehazeBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
+        }
+
+        public double FoliagePop
+        {
+            get => FoliageBar != null ? FoliageBar.Value : 0;
+            set { if (FoliageBar != null) FoliageBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
         }
         #endregion
 
@@ -838,6 +853,10 @@ namespace tarkov_settings
                 BlackStabilizerBar.Value = 0;
             else if (label.Equals(WhiteStabilizerLabel))
                 WhiteStabilizerBar.Value = 0;
+            else if (label.Equals(DehazeLabel) && DehazeBar != null)
+                DehazeBar.Value = 0;
+            else if (label.Equals(FoliageLabel) && FoliageBar != null)
+                FoliageBar.Value = 0;
 
             SyncUIToCurrentProfile();
             if (_isPreviewExpanded) RenderAndRefreshPreview();
@@ -849,11 +868,20 @@ namespace tarkov_settings
             var trackBar = sender as TrackBar;
 
             if (trackBar.Equals(BrightnessBar))
-                BrightnessText.Text = (BrightnessBar.Value / 100.0).ToString("0.00");
+            {
+                BrightnessText.Text = BrightnessBar.Value.ToString();
+                ColorController.Instance.Brightness = BrightnessBar.Value;
+            }
             else if (trackBar.Equals(ContrastBar))
-                ContrastText.Text = (ContrastBar.Value / 100.0).ToString("0.00");
+            {
+                ContrastText.Text = ContrastBar.Value.ToString();
+                ColorController.Instance.Contrast = ContrastBar.Value;
+            }
             else if (trackBar.Equals(GammaBar))
+            {
                 GammaText.Text = (GammaBar.Value / 100.0).ToString("0.00");
+                ColorController.Instance.Gamma = GammaBar.Value / 100.0;
+            }
             else if (trackBar.Equals(DVLBar))
                 DVLText.Text = DVLBar.Value.ToString();
             else if (trackBar.Equals(BlackStabilizerBar))
@@ -865,6 +893,16 @@ namespace tarkov_settings
             {
                 WhiteStabilizerText.Text = WhiteStabilizerBar.Value.ToString();
                 ColorController.Instance.WhiteStabilizer = WhiteStabilizerBar.Value;
+            }
+            else if (trackBar.Equals(DehazeBar))
+            {
+                DehazeText.Text = DehazeBar.Value.ToString();
+                ColorController.Instance.Dehaze = DehazeBar.Value;
+            }
+            else if (trackBar.Equals(FoliageBar))
+            {
+                FoliageText.Text = FoliageBar.Value.ToString();
+                ColorController.Instance.FoliagePop = FoliageBar.Value;
             }
 
             if (!_isLoadingProfile)
@@ -923,7 +961,6 @@ namespace tarkov_settings
         {
             _saveDebounceTimer?.Stop();
             SaveCurrentSettingsToDisk();
-
             Application.Exit();
         }
 
@@ -939,18 +976,9 @@ namespace tarkov_settings
             }
             else
             {
-                Console.WriteLine(e.CloseReason);
                 this.trayIcon.Dispose();
-                Console.WriteLine("[mainForm] Closing pMonitor");
                 pMonitor.Close();
             }
         }
-
-        private void label1_Click(object sender, EventArgs e) { }
-        private void groupBox1_Enter(object sender, EventArgs e) { }
-        private void groupBox1_Enter_1(object sender, EventArgs e) { }
-        private void label2_Click(object sender, EventArgs e) { }
-        private void label1_Click_1(object sender, EventArgs e) { }
-        private void layoutTablePanel_Paint(object sender, PaintEventArgs e) { }
     }
 }

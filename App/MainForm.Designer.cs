@@ -2,15 +2,8 @@
 {
     partial class MainForm
     {
-        /// <summary>
-        /// 필수 디자이너 변수입니다.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// 사용 중인 모든 리소스를 정리합니다.
-        /// </summary>
-        /// <param name="disposing">관리되는 리소스를 삭제해야 하면 true이고, 그렇지 않으면 false입니다.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -22,16 +15,21 @@
 
         #region Windows Form 디자이너에서 생성한 코드
 
-        /// <summary>
-        /// 디자이너 지원에 필요한 메서드입니다. 
-        /// 이 메서드의 내용을 코드 편집기로 수정하지 마세요.
-        /// </summary>
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.layoutTablePanel = new System.Windows.Forms.TableLayoutPanel();
             this.ColorPanel = new System.Windows.Forms.Panel();
+            this.OpticsGroup = new System.Windows.Forms.GroupBox();
+            this.panelFoliage = new System.Windows.Forms.Panel();
+            this.FoliageLabel = new System.Windows.Forms.Label();
+            this.FoliageText = new System.Windows.Forms.TextBox();
+            this.FoliageBar = new System.Windows.Forms.TrackBar();
+            this.panelDehaze = new System.Windows.Forms.Panel();
+            this.DehazeLabel = new System.Windows.Forms.Label();
+            this.DehazeText = new System.Windows.Forms.TextBox();
+            this.DehazeBar = new System.Windows.Forms.TrackBar();
             this.TogglePreviewButton = new System.Windows.Forms.Button();
             this.ProfileGroupBox = new System.Windows.Forms.GroupBox();
             this.RenameProfileButton = new System.Windows.Forms.Button();
@@ -88,6 +86,11 @@
             this.dvlToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.layoutTablePanel.SuspendLayout();
             this.ColorPanel.SuspendLayout();
+            this.OpticsGroup.SuspendLayout();
+            this.panelFoliage.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.FoliageBar)).BeginInit();
+            this.panelDehaze.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.DehazeBar)).BeginInit();
             this.ProfileGroupBox.SuspendLayout();
             this.StabilizerGroup.SuspendLayout();
             this.panel2.SuspendLayout();
@@ -127,10 +130,10 @@
             this.layoutTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.layoutTablePanel.Size = new System.Drawing.Size(1393, 615);
             this.layoutTablePanel.TabIndex = 0;
-            this.layoutTablePanel.Paint += new System.Windows.Forms.PaintEventHandler(this.layoutTablePanel_Paint);
             // 
             // ColorPanel
             // 
+            this.ColorPanel.Controls.Add(this.OpticsGroup);
             this.ColorPanel.Controls.Add(this.TogglePreviewButton);
             this.ColorPanel.Controls.Add(this.ProfileGroupBox);
             this.ColorPanel.Controls.Add(this.StabilizerGroup);
@@ -143,12 +146,107 @@
             this.ColorPanel.Size = new System.Drawing.Size(652, 609);
             this.ColorPanel.TabIndex = 2;
             // 
+            // OpticsGroup
+            // 
+            this.OpticsGroup.Controls.Add(this.panelFoliage);
+            this.OpticsGroup.Controls.Add(this.panelDehaze);
+            this.OpticsGroup.Location = new System.Drawing.Point(3, 448);
+            this.OpticsGroup.Name = "OpticsGroup";
+            this.OpticsGroup.Size = new System.Drawing.Size(490, 153);
+            this.OpticsGroup.TabIndex = 22;
+            this.OpticsGroup.TabStop = false;
+            this.OpticsGroup.Text = "Optics";
+            // 
+            // panelFoliage
+            // 
+            this.panelFoliage.Controls.Add(this.FoliageLabel);
+            this.panelFoliage.Controls.Add(this.FoliageText);
+            this.panelFoliage.Controls.Add(this.FoliageBar);
+            this.panelFoliage.Location = new System.Drawing.Point(6, 82);
+            this.panelFoliage.Name = "panelFoliage";
+            this.panelFoliage.Size = new System.Drawing.Size(481, 62);
+            this.panelFoliage.TabIndex = 29;
+            // 
+            // FoliageLabel
+            // 
+            this.FoliageLabel.AutoSize = true;
+            this.FoliageLabel.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.FoliageLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.FoliageLabel.Location = new System.Drawing.Point(20, 5);
+            this.FoliageLabel.Name = "FoliageLabel";
+            this.FoliageLabel.Size = new System.Drawing.Size(182, 14);
+            this.FoliageLabel.TabIndex = 18;
+            this.FoliageLabel.Text = "Foliage Pop (수풀 적 분리)";
+            this.FoliageLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
+            // 
+            // FoliageText
+            // 
+            this.FoliageText.Location = new System.Drawing.Point(424, 22);
+            this.FoliageText.Name = "FoliageText";
+            this.FoliageText.ReadOnly = true;
+            this.FoliageText.Size = new System.Drawing.Size(41, 22);
+            this.FoliageText.TabIndex = 19;
+            this.FoliageText.Text = "0";
+            this.FoliageText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // FoliageBar
+            // 
+            this.FoliageBar.Location = new System.Drawing.Point(13, 22);
+            this.FoliageBar.Maximum = 100;
+            this.FoliageBar.Name = "FoliageBar";
+            this.FoliageBar.Size = new System.Drawing.Size(397, 45);
+            this.FoliageBar.TabIndex = 17;
+            this.FoliageBar.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.FoliageBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
+            // 
+            // panelDehaze
+            // 
+            this.panelDehaze.Controls.Add(this.DehazeLabel);
+            this.panelDehaze.Controls.Add(this.DehazeText);
+            this.panelDehaze.Controls.Add(this.DehazeBar);
+            this.panelDehaze.Location = new System.Drawing.Point(6, 18);
+            this.panelDehaze.Name = "panelDehaze";
+            this.panelDehaze.Size = new System.Drawing.Size(481, 62);
+            this.panelDehaze.TabIndex = 28;
+            // 
+            // DehazeLabel
+            // 
+            this.DehazeLabel.AutoSize = true;
+            this.DehazeLabel.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.DehazeLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.DehazeLabel.Location = new System.Drawing.Point(20, 5);
+            this.DehazeLabel.Name = "DehazeLabel";
+            this.DehazeLabel.Size = new System.Drawing.Size(126, 14);
+            this.DehazeLabel.TabIndex = 18;
+            this.DehazeLabel.Text = "Dehaze (안개 억제)";
+            this.DehazeLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
+            // 
+            // DehazeText
+            // 
+            this.DehazeText.Location = new System.Drawing.Point(424, 22);
+            this.DehazeText.Name = "DehazeText";
+            this.DehazeText.ReadOnly = true;
+            this.DehazeText.Size = new System.Drawing.Size(41, 22);
+            this.DehazeText.TabIndex = 19;
+            this.DehazeText.Text = "0";
+            this.DehazeText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // DehazeBar
+            // 
+            this.DehazeBar.Location = new System.Drawing.Point(13, 22);
+            this.DehazeBar.Maximum = 100;
+            this.DehazeBar.Name = "DehazeBar";
+            this.DehazeBar.Size = new System.Drawing.Size(397, 45);
+            this.DehazeBar.TabIndex = 17;
+            this.DehazeBar.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.DehazeBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
+            // 
             // TogglePreviewButton
             // 
             this.TogglePreviewButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.TogglePreviewButton.Location = new System.Drawing.Point(505, 489);
+            this.TogglePreviewButton.Location = new System.Drawing.Point(505, 565);
             this.TogglePreviewButton.Name = "TogglePreviewButton";
-            this.TogglePreviewButton.Size = new System.Drawing.Size(75, 23);
+            this.TogglePreviewButton.Size = new System.Drawing.Size(75, 25);
             this.TogglePreviewButton.TabIndex = 21;
             this.TogglePreviewButton.Text = "▶ 미리보기";
             this.TogglePreviewButton.UseVisualStyleBackColor = true;
@@ -168,7 +266,6 @@
             this.ProfileGroupBox.TabIndex = 0;
             this.ProfileGroupBox.TabStop = false;
             this.ProfileGroupBox.Text = "Profile";
-            this.ProfileGroupBox.Enter += new System.EventHandler(this.groupBox1_Enter_1);
             // 
             // RenameProfileButton
             // 
@@ -191,7 +288,6 @@
             this.profile_t1.Size = new System.Drawing.Size(321, 14);
             this.profile_t1.TabIndex = 20;
             this.profile_t1.Text = ".exe를 뺀 영문 프로세스명을 입력하세요 (쉼표로 복수 입력 가능)";
-            this.profile_t1.Click += new System.EventHandler(this.label1_Click_1);
             // 
             // ProfileEnabledCheckBox
             // 
@@ -252,29 +348,29 @@
             // 
             this.StabilizerGroup.Controls.Add(this.panel2);
             this.StabilizerGroup.Controls.Add(this.panel1);
-            this.StabilizerGroup.Location = new System.Drawing.Point(3, 409);
+            this.StabilizerGroup.Location = new System.Drawing.Point(3, 293);
             this.StabilizerGroup.Name = "StabilizerGroup";
-            this.StabilizerGroup.Size = new System.Drawing.Size(490, 197);
+            this.StabilizerGroup.Size = new System.Drawing.Size(490, 150);
             this.StabilizerGroup.TabIndex = 20;
             this.StabilizerGroup.TabStop = false;
             this.StabilizerGroup.Text = "Stabilizer";
-            this.StabilizerGroup.Enter += new System.EventHandler(this.groupBox1_Enter);
             // 
             // panel2
             // 
             this.panel2.Controls.Add(this.WhiteStabilizerLabel);
             this.panel2.Controls.Add(this.WhiteStabilizerText);
             this.panel2.Controls.Add(this.WhiteStabilizerBar);
-            this.panel2.Location = new System.Drawing.Point(6, 109);
+            this.panel2.Location = new System.Drawing.Point(6, 82);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(481, 82);
+            this.panel2.Size = new System.Drawing.Size(481, 62);
             this.panel2.TabIndex = 27;
             // 
             // WhiteStabilizerLabel
             // 
             this.WhiteStabilizerLabel.AutoSize = true;
+            this.WhiteStabilizerLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.WhiteStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.WhiteStabilizerLabel.Location = new System.Drawing.Point(20, 16);
+            this.WhiteStabilizerLabel.Location = new System.Drawing.Point(20, 5);
             this.WhiteStabilizerLabel.Name = "WhiteStabilizerLabel";
             this.WhiteStabilizerLabel.Size = new System.Drawing.Size(119, 14);
             this.WhiteStabilizerLabel.TabIndex = 18;
@@ -283,8 +379,9 @@
             // 
             // WhiteStabilizerText
             // 
-            this.WhiteStabilizerText.Location = new System.Drawing.Point(424, 33);
+            this.WhiteStabilizerText.Location = new System.Drawing.Point(424, 22);
             this.WhiteStabilizerText.Name = "WhiteStabilizerText";
+            this.WhiteStabilizerText.ReadOnly = true;
             this.WhiteStabilizerText.Size = new System.Drawing.Size(41, 22);
             this.WhiteStabilizerText.TabIndex = 19;
             this.WhiteStabilizerText.Text = "0";
@@ -292,7 +389,7 @@
             // 
             // WhiteStabilizerBar
             // 
-            this.WhiteStabilizerBar.Location = new System.Drawing.Point(13, 33);
+            this.WhiteStabilizerBar.Location = new System.Drawing.Point(13, 22);
             this.WhiteStabilizerBar.Maximum = 100;
             this.WhiteStabilizerBar.Name = "WhiteStabilizerBar";
             this.WhiteStabilizerBar.Size = new System.Drawing.Size(397, 45);
@@ -306,16 +403,16 @@
             this.panel1.Controls.Add(this.BlackStabilizerLabel);
             this.panel1.Controls.Add(this.BlackStabilizerText);
             this.panel1.Controls.Add(this.BlackStabilizerBar);
-            this.panel1.Location = new System.Drawing.Point(6, 21);
+            this.panel1.Location = new System.Drawing.Point(6, 18);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(481, 82);
+            this.panel1.Size = new System.Drawing.Size(481, 62);
             this.panel1.TabIndex = 26;
             // 
             // DynamicAdaptiveCheckBox
             // 
             this.DynamicAdaptiveCheckBox.AutoSize = true;
             this.DynamicAdaptiveCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.DynamicAdaptiveCheckBox.Location = new System.Drawing.Point(285, 12);
+            this.DynamicAdaptiveCheckBox.Location = new System.Drawing.Point(285, 3);
             this.DynamicAdaptiveCheckBox.Name = "DynamicAdaptiveCheckBox";
             this.DynamicAdaptiveCheckBox.Size = new System.Drawing.Size(180, 18);
             this.DynamicAdaptiveCheckBox.TabIndex = 20;
@@ -326,19 +423,20 @@
             // BlackStabilizerLabel
             // 
             this.BlackStabilizerLabel.AutoSize = true;
+            this.BlackStabilizerLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.BlackStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.BlackStabilizerLabel.Location = new System.Drawing.Point(20, 16);
+            this.BlackStabilizerLabel.Location = new System.Drawing.Point(20, 5);
             this.BlackStabilizerLabel.Name = "BlackStabilizerLabel";
             this.BlackStabilizerLabel.Size = new System.Drawing.Size(119, 14);
             this.BlackStabilizerLabel.TabIndex = 18;
             this.BlackStabilizerLabel.Text = "Black Stabilizer";
-            this.BlackStabilizerLabel.Click += new System.EventHandler(this.label1_Click);
             this.BlackStabilizerLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
             // 
             // BlackStabilizerText
             // 
-            this.BlackStabilizerText.Location = new System.Drawing.Point(424, 33);
+            this.BlackStabilizerText.Location = new System.Drawing.Point(424, 22);
             this.BlackStabilizerText.Name = "BlackStabilizerText";
+            this.BlackStabilizerText.ReadOnly = true;
             this.BlackStabilizerText.Size = new System.Drawing.Size(41, 22);
             this.BlackStabilizerText.TabIndex = 19;
             this.BlackStabilizerText.Text = "0";
@@ -346,7 +444,7 @@
             // 
             // BlackStabilizerBar
             // 
-            this.BlackStabilizerBar.Location = new System.Drawing.Point(13, 33);
+            this.BlackStabilizerBar.Location = new System.Drawing.Point(13, 22);
             this.BlackStabilizerBar.Maximum = 100;
             this.BlackStabilizerBar.Name = "BlackStabilizerBar";
             this.BlackStabilizerBar.Size = new System.Drawing.Size(397, 45);
@@ -359,7 +457,7 @@
             this.minimizeStartCheckBox.AutoSize = true;
             this.minimizeStartCheckBox.BackColor = System.Drawing.Color.Transparent;
             this.minimizeStartCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.minimizeStartCheckBox.Location = new System.Drawing.Point(505, 442);
+            this.minimizeStartCheckBox.Location = new System.Drawing.Point(505, 340);
             this.minimizeStartCheckBox.Name = "minimizeStartCheckBox";
             this.minimizeStartCheckBox.Size = new System.Drawing.Size(138, 32);
             this.minimizeStartCheckBox.TabIndex = 16;
@@ -372,7 +470,7 @@
             this.DisplayCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.DisplayCombo.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.DisplayCombo.FormattingEnabled = true;
-            this.DisplayCombo.Location = new System.Drawing.Point(505, 409);
+            this.DisplayCombo.Location = new System.Drawing.Point(505, 305);
             this.DisplayCombo.Name = "DisplayCombo";
             this.DisplayCombo.Size = new System.Drawing.Size(139, 22);
             this.DisplayCombo.TabIndex = 15;
@@ -381,9 +479,9 @@
             // DVLGroupBox
             // 
             this.DVLGroupBox.Controls.Add(this.DVLPanel);
-            this.DVLGroupBox.Location = new System.Drawing.Point(502, 96);
+            this.DVLGroupBox.Location = new System.Drawing.Point(502, 93);
             this.DVLGroupBox.Name = "DVLGroupBox";
-            this.DVLGroupBox.Size = new System.Drawing.Size(145, 307);
+            this.DVLGroupBox.Size = new System.Drawing.Size(145, 195);
             this.DVLGroupBox.TabIndex = 13;
             this.DVLGroupBox.TabStop = false;
             this.DVLGroupBox.Text = "DVL";
@@ -396,7 +494,7 @@
             this.DVLPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.DVLPanel.Location = new System.Drawing.Point(3, 18);
             this.DVLPanel.Name = "DVLPanel";
-            this.DVLPanel.Size = new System.Drawing.Size(139, 286);
+            this.DVLPanel.Size = new System.Drawing.Size(139, 174);
             this.DVLPanel.TabIndex = 0;
             // 
             // DVLLabel
@@ -404,7 +502,7 @@
             this.DVLLabel.AutoSize = true;
             this.DVLLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.DVLLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.DVLLabel.Location = new System.Drawing.Point(13, 11);
+            this.DVLLabel.Location = new System.Drawing.Point(10, 5);
             this.DVLLabel.Name = "DVLLabel";
             this.DVLLabel.Size = new System.Drawing.Size(119, 28);
             this.DVLLabel.TabIndex = 10;
@@ -414,18 +512,18 @@
             // 
             // DVLBar
             // 
-            this.DVLBar.Location = new System.Drawing.Point(56, 42);
+            this.DVLBar.Location = new System.Drawing.Point(56, 35);
             this.DVLBar.Maximum = 63;
             this.DVLBar.Name = "DVLBar";
             this.DVLBar.Orientation = System.Windows.Forms.Orientation.Vertical;
-            this.DVLBar.Size = new System.Drawing.Size(45, 184);
+            this.DVLBar.Size = new System.Drawing.Size(45, 105);
             this.DVLBar.TabIndex = 9;
             this.DVLBar.TickStyle = System.Windows.Forms.TickStyle.None;
             this.DVLBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
             // 
             // DVLText
             // 
-            this.DVLText.Location = new System.Drawing.Point(46, 232);
+            this.DVLText.Location = new System.Drawing.Point(46, 145);
             this.DVLText.Name = "DVLText";
             this.DVLText.ReadOnly = true;
             this.DVLText.Size = new System.Drawing.Size(41, 22);
@@ -436,9 +534,9 @@
             // colorGroupBox
             // 
             this.colorGroupBox.Controls.Add(this.colorTablePanel);
-            this.colorGroupBox.Location = new System.Drawing.Point(3, 96);
+            this.colorGroupBox.Location = new System.Drawing.Point(3, 93);
             this.colorGroupBox.Name = "colorGroupBox";
-            this.colorGroupBox.Size = new System.Drawing.Size(490, 307);
+            this.colorGroupBox.Size = new System.Drawing.Size(490, 195);
             this.colorGroupBox.TabIndex = 12;
             this.colorGroupBox.TabStop = false;
             this.colorGroupBox.Text = "Color";
@@ -457,7 +555,7 @@
             this.colorTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
             this.colorTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
             this.colorTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
-            this.colorTablePanel.Size = new System.Drawing.Size(484, 286);
+            this.colorTablePanel.Size = new System.Drawing.Size(484, 174);
             this.colorTablePanel.TabIndex = 1;
             // 
             // brightnessPanel
@@ -468,14 +566,14 @@
             this.brightnessPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.brightnessPanel.Location = new System.Drawing.Point(3, 3);
             this.brightnessPanel.Name = "brightnessPanel";
-            this.brightnessPanel.Size = new System.Drawing.Size(478, 89);
+            this.brightnessPanel.Size = new System.Drawing.Size(478, 52);
             this.brightnessPanel.TabIndex = 0;
             // 
             // BrightnessBar
             // 
-            this.BrightnessBar.Location = new System.Drawing.Point(13, 27);
+            this.BrightnessBar.Location = new System.Drawing.Point(13, 20);
             this.BrightnessBar.Maximum = 100;
-            this.BrightnessBar.Minimum = -100;
+            this.BrightnessBar.Minimum = 0;
             this.BrightnessBar.Name = "BrightnessBar";
             this.BrightnessBar.Size = new System.Drawing.Size(397, 45);
             this.BrightnessBar.TabIndex = 18;
@@ -488,7 +586,7 @@
             this.BrightnessLabel.AutoSize = true;
             this.BrightnessLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.BrightnessLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.BrightnessLabel.Location = new System.Drawing.Point(20, 10);
+            this.BrightnessLabel.Location = new System.Drawing.Point(20, 3);
             this.BrightnessLabel.Name = "BrightnessLabel";
             this.BrightnessLabel.Size = new System.Drawing.Size(77, 14);
             this.BrightnessLabel.TabIndex = 21;
@@ -497,12 +595,12 @@
             // 
             // BrightnessText
             // 
-            this.BrightnessText.Location = new System.Drawing.Point(424, 27);
+            this.BrightnessText.Location = new System.Drawing.Point(424, 20);
             this.BrightnessText.Name = "BrightnessText";
             this.BrightnessText.ReadOnly = true;
             this.BrightnessText.Size = new System.Drawing.Size(41, 22);
             this.BrightnessText.TabIndex = 24;
-            this.BrightnessText.Text = "0.50";
+            this.BrightnessText.Text = "50";
             this.BrightnessText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // contrastPanel
@@ -511,16 +609,16 @@
             this.contrastPanel.Controls.Add(this.ContrastText);
             this.contrastPanel.Controls.Add(this.ContrastLabel);
             this.contrastPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.contrastPanel.Location = new System.Drawing.Point(3, 98);
+            this.contrastPanel.Location = new System.Drawing.Point(3, 61);
             this.contrastPanel.Name = "contrastPanel";
-            this.contrastPanel.Size = new System.Drawing.Size(478, 89);
+            this.contrastPanel.Size = new System.Drawing.Size(478, 52);
             this.contrastPanel.TabIndex = 1;
             // 
             // ContrastBar
             // 
-            this.ContrastBar.Location = new System.Drawing.Point(13, 39);
+            this.ContrastBar.Location = new System.Drawing.Point(13, 20);
             this.ContrastBar.Maximum = 100;
-            this.ContrastBar.Minimum = -100;
+            this.ContrastBar.Minimum = 0;
             this.ContrastBar.Name = "ContrastBar";
             this.ContrastBar.Size = new System.Drawing.Size(397, 45);
             this.ContrastBar.TabIndex = 19;
@@ -530,12 +628,12 @@
             // 
             // ContrastText
             // 
-            this.ContrastText.Location = new System.Drawing.Point(424, 39);
+            this.ContrastText.Location = new System.Drawing.Point(424, 20);
             this.ContrastText.Name = "ContrastText";
             this.ContrastText.ReadOnly = true;
             this.ContrastText.Size = new System.Drawing.Size(41, 22);
             this.ContrastText.TabIndex = 25;
-            this.ContrastText.Text = "0.50";
+            this.ContrastText.Text = "50";
             this.ContrastText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // ContrastLabel
@@ -543,7 +641,7 @@
             this.ContrastLabel.AutoSize = true;
             this.ContrastLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.ContrastLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.ContrastLabel.Location = new System.Drawing.Point(20, 22);
+            this.ContrastLabel.Location = new System.Drawing.Point(20, 3);
             this.ContrastLabel.Name = "ContrastLabel";
             this.ContrastLabel.Size = new System.Drawing.Size(63, 14);
             this.ContrastLabel.TabIndex = 22;
@@ -556,14 +654,14 @@
             this.gammaPanel.Controls.Add(this.GammaBar);
             this.gammaPanel.Controls.Add(this.GammaLabel);
             this.gammaPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gammaPanel.Location = new System.Drawing.Point(3, 193);
+            this.gammaPanel.Location = new System.Drawing.Point(3, 119);
             this.gammaPanel.Name = "gammaPanel";
-            this.gammaPanel.Size = new System.Drawing.Size(478, 90);
+            this.gammaPanel.Size = new System.Drawing.Size(478, 52);
             this.gammaPanel.TabIndex = 2;
             // 
             // GammaText
             // 
-            this.GammaText.Location = new System.Drawing.Point(424, 40);
+            this.GammaText.Location = new System.Drawing.Point(424, 20);
             this.GammaText.Name = "GammaText";
             this.GammaText.ReadOnly = true;
             this.GammaText.Size = new System.Drawing.Size(41, 22);
@@ -573,7 +671,7 @@
             // 
             // GammaBar
             // 
-            this.GammaBar.Location = new System.Drawing.Point(13, 40);
+            this.GammaBar.Location = new System.Drawing.Point(13, 20);
             this.GammaBar.Maximum = 280;
             this.GammaBar.Minimum = 40;
             this.GammaBar.Name = "GammaBar";
@@ -588,7 +686,7 @@
             this.GammaLabel.AutoSize = true;
             this.GammaLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.GammaLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.GammaLabel.Location = new System.Drawing.Point(20, 23);
+            this.GammaLabel.Location = new System.Drawing.Point(20, 3);
             this.GammaLabel.Name = "GammaLabel";
             this.GammaLabel.Size = new System.Drawing.Size(42, 14);
             this.GammaLabel.TabIndex = 23;
@@ -732,7 +830,13 @@
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.layoutTablePanel.ResumeLayout(false);
             this.ColorPanel.ResumeLayout(false);
-            this.ColorPanel.PerformLayout();
+            this.OpticsGroup.ResumeLayout(false);
+            this.panelFoliage.ResumeLayout(false);
+            this.panelFoliage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.FoliageBar)).EndInit();
+            this.panelDehaze.ResumeLayout(false);
+            this.panelDehaze.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.DehazeBar)).EndInit();
             this.ProfileGroupBox.ResumeLayout(false);
             this.ProfileGroupBox.PerformLayout();
             this.StabilizerGroup.ResumeLayout(false);
@@ -769,9 +873,6 @@
         #endregion
         private System.Windows.Forms.TableLayoutPanel layoutTablePanel;
         private System.Windows.Forms.Panel ColorPanel;
-        
-        
-
         private System.Windows.Forms.GroupBox colorGroupBox;
         private System.Windows.Forms.TextBox DVLText;
         private System.Windows.Forms.Label DVLLabel;
@@ -826,6 +927,15 @@
         private System.Windows.Forms.ComboBox SampleImageComboBox;
         private System.Windows.Forms.Button TogglePreviewButton;
         private System.Windows.Forms.PictureBox LutGraphPictureBox;
+
+        private System.Windows.Forms.GroupBox OpticsGroup;
+        private System.Windows.Forms.Panel panelDehaze;
+        private System.Windows.Forms.Label DehazeLabel;
+        private System.Windows.Forms.TextBox DehazeText;
+        private System.Windows.Forms.TrackBar DehazeBar;
+        private System.Windows.Forms.Panel panelFoliage;
+        private System.Windows.Forms.Label FoliageLabel;
+        private System.Windows.Forms.TextBox FoliageText;
+        private System.Windows.Forms.TrackBar FoliageBar;
     }
 }
-

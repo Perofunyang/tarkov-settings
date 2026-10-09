@@ -193,6 +193,8 @@ namespace tarkov_settings
                     cController.BlackStabilizer = matchedProfile.BlackStabilizer;
                     cController.WhiteStabilizer = matchedProfile.WhiteStabilizer;
                     cController.IsDynamicAdaptive = matchedProfile.IsDynamicAdaptive;
+                    cController.Dehaze = matchedProfile.Dehaze;          // 추가
+                    cController.FoliagePop = matchedProfile.FoliagePop;  // 추가
 
                     cController.ApplyColorSettings(reset: false);
                     cController.DVL = matchedProfile.Saturation;
