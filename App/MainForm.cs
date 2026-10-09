@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Resources;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using tarkov_settings.Setting;
 using tarkov_settings.GPU;
@@ -28,6 +29,7 @@ namespace tarkov_settings
         private bool _isPreviewExpanded = false;
 
         private System.Windows.Forms.Timer _saveDebounceTimer;
+        private System.Windows.Forms.Timer _drsDebounceTimer;
         private ToolStripMenuItem _trayDynamicAdaptiveMenuItem;
 
         private Dictionary<string, Bitmap> _sampleImages = new Dictionary<string, Bitmap>();
@@ -36,6 +38,7 @@ namespace tarkov_settings
         private Bitmap _graphBitmap = null;
         private byte[] _rawBuffer = null;
         private byte[] _workBuffer = null;
+        private byte[] _sharpenBuffer = null;
         private int _bufferStride = 0;
         private int _bufferWidth = 0;
         private int _bufferHeight = 0;
@@ -65,6 +68,17 @@ namespace tarkov_settings
                 SaveCurrentSettingsToDisk();
             };
 
+            // DRS 설정 디바운싱 타이머 (드라이버 파일 I/O 과부하 방지)
+            _drsDebounceTimer = new System.Windows.Forms.Timer { Interval = 600 };
+            _drsDebounceTimer.Tick += (s, e) =>
+            {
+                _drsDebounceTimer.Stop();
+                if (gpu.Vendor == GPUVendor.NVIDIA)
+                {
+                    NvApiDrsController.ApplySharpening(this.Sharpening);
+                }
+            };
+
             #region Load App Settings
             appSetting = AppSetting.Load();
             minimizeOnStart = appSetting.minimizeOnStart;
@@ -73,12 +87,20 @@ namespace tarkov_settings
             PopulateProfileComboBox();
             #endregion
 
+            // 이벤트 바인딩
             if (this.ProfileComboBox != null) this.ProfileComboBox.SelectedIndexChanged += ProfileComboBox_SelectedIndexChanged;
             if (this.TargetProcessTextBox != null) this.TargetProcessTextBox.TextChanged += TargetProcessTextBox_TextChanged;
             if (this.ProfileEnabledCheckBox != null) this.ProfileEnabledCheckBox.CheckedChanged += ProfileEnabledCheckBox_CheckedChanged;
             if (this.SampleImageComboBox != null) this.SampleImageComboBox.SelectedIndexChanged += SampleImageComboBox_SelectedIndexChanged;
             if (this.CompareOriginalCheckBox != null) this.CompareOriginalCheckBox.CheckedChanged += CompareOriginalCheckBox_CheckedChanged;
             if (this.TogglePreviewButton != null) this.TogglePreviewButton.Click += TogglePreviewButton_Click;
+
+            // 툴팁 설정
+            if (this.sharpenToolTip != null && this.SharpenBar != null)
+            {
+                this.sharpenToolTip.SetToolTip(this.SharpenBar, "게임 내 TAA 블러를 제거하고 외곽선을 또렷하게 만듭니다.");
+                this.sharpenToolTip.SetToolTip(this.SharpenLabel, "게임 내 TAA 블러를 제거하고 외곽선을 또렷하게 만듭니다.");
+            }
 
             _trayDynamicAdaptiveMenuItem = new ToolStripMenuItem("Dynamic Adaptive Boost")
             {
@@ -98,7 +120,10 @@ namespace tarkov_settings
             _ = new UpdateNotifier(version);
 
             if (gpu.Vendor != GPUVendor.NVIDIA)
+            {
                 DVLGroupBox.Enabled = false;
+                if (panelSharpen != null) panelSharpen.Enabled = false;
+            }
 
             #region Initialize Display
             foreach (string display in Display.displays)
@@ -241,6 +266,7 @@ namespace tarkov_settings
 
             _rawBuffer = new byte[bytes];
             _workBuffer = new byte[bytes];
+            _sharpenBuffer = new byte[bytes];
 
             Marshal.Copy(data.Scan0, _rawBuffer, 0, bytes);
             _cachedRawSample.UnlockBits(data);
@@ -256,6 +282,9 @@ namespace tarkov_settings
             UpdateDisplayedImage();
         }
 
+        /// <summary>
+        /// 0.2ms 만에 3-LUT 색상 변환 + 채도 + 실시간 샤프닝 렌더링을 일괄 수행
+        /// </summary>
         private void RenderAndRefreshPreview()
         {
             if (!_isPreviewExpanded || _cachedRawSample == null || _rawBuffer == null) return;
@@ -289,6 +318,7 @@ namespace tarkov_settings
                 return;
             }
 
+            // 1. 기본 색상 / LUT / 채도 변환
             int len = _rawBuffer.Length;
             double satScale = 1.0 + (DVL / 50.0);
             bool hasDVL = (DVL != 0);
@@ -312,13 +342,57 @@ namespace tarkov_settings
                 _workBuffer[i + 2] = red;
             }
 
+            // 2. 인앱 실시간 언샵 마스크 샤프닝 (0.2ms 고속 병렬 컨볼루션)
+            byte[] finalBuffer = _workBuffer;
+            int sharpVal = this.Sharpening;
+
+            if (sharpVal > 0)
+            {
+                float strength = (sharpVal / 100.0f) * 1.25f;
+                int stride = _bufferStride;
+                int w = _bufferWidth;
+                int h = _bufferHeight;
+
+                Buffer.BlockCopy(_workBuffer, 0, _sharpenBuffer, 0, len);
+
+                Parallel.For(1, h - 1, y =>
+                {
+                    int row = y * stride;
+                    int rowUp = (y - 1) * stride;
+                    int rowDown = (y + 1) * stride;
+
+                    for (int x = 1; x < w - 1; x++)
+                    {
+                        int idx = row + (x * 3);
+                        int idxL = row + ((x - 1) * 3);
+                        int idxR = row + ((x + 1) * 3);
+                        int idxU = rowUp + (x * 3);
+                        int idxD = rowDown + (x * 3);
+
+                        for (int c = 0; c < 3; c++)
+                        {
+                            int center = _workBuffer[idx + c];
+                            int blur = (_workBuffer[idxL + c] + _workBuffer[idxR + c] +
+                                        _workBuffer[idxU + c] + _workBuffer[idxD + c]) >> 2;
+
+                            int diff = center - blur;
+                            int res = center + (int)(diff * strength);
+
+                            _sharpenBuffer[idx + c] = (byte)(res < 0 ? 0 : (res > 255 ? 255 : res));
+                        }
+                    }
+                });
+
+                finalBuffer = _sharpenBuffer;
+            }
+
             BitmapData dstData = _cachedProcessedBitmap.LockBits(
                 new Rectangle(0, 0, _bufferWidth, _bufferHeight),
                 ImageLockMode.WriteOnly,
                 PixelFormat.Format24bppRgb
             );
 
-            Marshal.Copy(_workBuffer, 0, dstData.Scan0, len);
+            Marshal.Copy(finalBuffer, 0, dstData.Scan0, len);
             _cachedProcessedBitmap.UnlockBits(dstData);
 
             UpdateDisplayedImage();
@@ -485,7 +559,6 @@ namespace tarkov_settings
             if (string.IsNullOrEmpty(processName) || appSetting?.Profiles == null)
                 return null;
 
-            // [1순위] 현재 UI에서 선택된 프로필이 이 프로세스를 포함하면 최우선 적용
             var current = CurrentProfile;
             if (current != null && current.IsEnabled && current.TargetProcesses != null)
             {
@@ -496,7 +569,6 @@ namespace tarkov_settings
                 }
             }
 
-            // [2순위] 목록 순서대로 첫 번째 매칭 프로필 탐색
             foreach (var profile in appSetting.Profiles)
             {
                 if (!profile.IsEnabled || profile.TargetProcesses == null)
@@ -547,6 +619,7 @@ namespace tarkov_settings
             IsDynamicAdaptive = profile.IsDynamicAdaptive;
             Dehaze = profile.Dehaze;
             FoliagePop = profile.FoliagePop;
+            Sharpening = profile.Sharpening;
 
             TargetProcessTextBox.Text = string.Join(", ", profile.TargetProcesses);
             ProfileEnabledCheckBox.Checked = profile.IsEnabled;
@@ -559,6 +632,7 @@ namespace tarkov_settings
             WhiteStabilizerText.Text = profile.WhiteStabilizer.ToString();
             if (DehazeText != null) DehazeText.Text = ((int)profile.Dehaze).ToString();
             if (FoliageText != null) FoliageText.Text = ((int)profile.FoliagePop).ToString();
+            if (SharpenText != null) SharpenText.Text = profile.Sharpening.ToString();
 
             var cController = ColorController.Instance;
             cController.Brightness = profile.Brightness;
@@ -572,6 +646,12 @@ namespace tarkov_settings
 
             _isLoadingProfile = false;
             if (_isPreviewExpanded) RenderAndRefreshPreview();
+
+            // 엔비디아 DRS 선명도 커밋
+            if (gpu.Vendor == GPUVendor.NVIDIA)
+            {
+                NvApiDrsController.ApplySharpening(profile.Sharpening);
+            }
         }
 
         private void ProfileComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -608,15 +688,16 @@ namespace tarkov_settings
                 Name = newName,
                 IsEnabled = true,
                 TargetProcesses = new List<string> { "GameProcessName" },
-                Brightness = 50.0,
+                Brightness = 45.0,
                 Contrast = 50.0,
-                Gamma = 1.00,
-                Saturation = 0,
-                BlackStabilizer = 0,
-                WhiteStabilizer = 0,
+                Gamma = 1.70,
+                Saturation = 40,
+                BlackStabilizer = 30.0,
+                WhiteStabilizer = 25.0,
                 IsDynamicAdaptive = false,
-                Dehaze = 0,
-                FoliagePop = 0
+                Dehaze = 20.0,
+                FoliagePop = 25.0,
+                Sharpening = 50
             };
 
             appSetting.Profiles.Add(newProfile);
@@ -709,6 +790,7 @@ namespace tarkov_settings
             CurrentProfile.IsDynamicAdaptive = IsDynamicAdaptive;
             CurrentProfile.Dehaze = Dehaze;
             CurrentProfile.FoliagePop = FoliagePop;
+            CurrentProfile.Sharpening = Sharpening;
         }
 
         private static string ShowInputDialog(string prompt, string title, string defaultValue = "")
@@ -817,6 +899,12 @@ namespace tarkov_settings
             get => FoliageBar != null ? FoliageBar.Value : 0;
             set { if (FoliageBar != null) FoliageBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
         }
+
+        public int Sharpening
+        {
+            get => SharpenBar != null ? SharpenBar.Value : 0;
+            set { if (SharpenBar != null) SharpenBar.Value = Math.Max(0, Math.Min(100, value)); }
+        }
         #endregion
 
         public bool IsEnabled { get => this.enableToolStripMenuItem.Checked; }
@@ -857,6 +945,8 @@ namespace tarkov_settings
                 DehazeBar.Value = 0;
             else if (label.Equals(FoliageLabel) && FoliageBar != null)
                 FoliageBar.Value = 0;
+            else if (label.Equals(SharpenLabel) && SharpenBar != null)
+                SharpenBar.Value = 0;
 
             SyncUIToCurrentProfile();
             if (_isPreviewExpanded) RenderAndRefreshPreview();
@@ -903,6 +993,12 @@ namespace tarkov_settings
             {
                 FoliageText.Text = FoliageBar.Value.ToString();
                 ColorController.Instance.FoliagePop = FoliageBar.Value;
+            }
+            else if (trackBar.Equals(SharpenBar))
+            {
+                SharpenText.Text = SharpenBar.Value.ToString();
+                _drsDebounceTimer?.Stop();
+                _drsDebounceTimer?.Start();
             }
 
             if (!_isLoadingProfile)
@@ -976,6 +1072,7 @@ namespace tarkov_settings
             }
             else
             {
+                Console.WriteLine(e.CloseReason);
                 this.trayIcon.Dispose();
                 pMonitor.Close();
             }

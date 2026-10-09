@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using tarkov_settings.Setting;
+using tarkov_settings.GPU; // [해결 1] GPU 네임스페이스 추가
 
 namespace tarkov_settings
 {
@@ -114,9 +115,10 @@ namespace tarkov_settings
     {
         private NativeMethods.WinEventDelegate processHook;
         private readonly ColorController cController = ColorController.Instance;
+        private readonly IGPU gpu = GPUDevice.Instance; // [해결 2] gpu 인스턴스 선언
 
         private bool _isTargetFocused = false;
-        private string _currentFocusedProfileName = null; // 현재 적용 중인 프로필 이름 추적
+        private string _currentFocusedProfileName = null;
         private System.Threading.Timer _pollTimer;
 
         #region Singleton Pattern implement
@@ -139,13 +141,11 @@ namespace tarkov_settings
 
             cController.Init();
 
-            // 0.5초 주기 안전 폴링 타이머
             _pollTimer = new System.Threading.Timer((state) =>
             {
                 WinEventProc(IntPtr.Zero, 0, IntPtr.Zero, 0, 0, 0, 0);
             }, null, 500, 500);
 
-            // 시작 시점 즉시 1회 검사
             OnFocusChangedInternal();
         }
 
@@ -173,28 +173,30 @@ namespace tarkov_settings
             if (Parent == null || Parent.IsDisposed) return;
 
             string activeTitle = NativeMethods.GetActiveWindowTitle();
-
-            // [핵심] 현재 활성화된 창과 일치하는 프로필 자동 검색
             Profile matchedProfile = Parent.GetMatchingProfile(activeTitle);
 
             if (matchedProfile != null && Parent.IsEnabled)
             {
-                // 게임 창이 새로 포커스되었거나, 다른 게임으로 바로 전환된 경우
                 if (!_isTargetFocused || _currentFocusedProfileName != matchedProfile.Name)
                 {
                     Console.WriteLine($"[pMonitor] Target Process IS focused: {activeTitle} (Profile: {matchedProfile.Name})");
                     _isTargetFocused = true;
                     _currentFocusedProfileName = matchedProfile.Name;
 
-                    // 매칭된 프로필의 수치를 ColorController에 즉시 주입 및 적용
                     cController.Brightness = matchedProfile.Brightness;
                     cController.Contrast = matchedProfile.Contrast;
                     cController.Gamma = matchedProfile.Gamma;
                     cController.BlackStabilizer = matchedProfile.BlackStabilizer;
                     cController.WhiteStabilizer = matchedProfile.WhiteStabilizer;
                     cController.IsDynamicAdaptive = matchedProfile.IsDynamicAdaptive;
-                    cController.Dehaze = matchedProfile.Dehaze;          // 추가
-                    cController.FoliagePop = matchedProfile.FoliagePop;  // 추가
+                    cController.Dehaze = matchedProfile.Dehaze;
+                    cController.FoliagePop = matchedProfile.FoliagePop;
+
+                    // 엔비디아 드라이버 선명도 주입
+                    if (gpu.Vendor == GPUVendor.NVIDIA)
+                    {
+                        NvApiDrsController.ApplySharpening(matchedProfile.Sharpening);
+                    }
 
                     cController.ApplyColorSettings(reset: false);
                     cController.DVL = matchedProfile.Saturation;
@@ -202,7 +204,6 @@ namespace tarkov_settings
             }
             else
             {
-                // 게임이 아닌 창(바탕화면, 브라우저 등)일 때
                 if (_isTargetFocused)
                 {
                     Console.WriteLine("[pMonitor] Target Process is NOT focused");

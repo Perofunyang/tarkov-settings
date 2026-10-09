@@ -11,6 +11,9 @@ namespace tarkov_settings.Setting
         public string display = @"\\.\DISPLAY1";
         public bool minimizeOnStart = false;
 
+        /// <summary>
+        /// 사용자 지정 최신 기본 추천 프로필 생성
+        /// </summary>
         public static AppSetting CreateDefault()
         {
             var setting = new AppSetting();
@@ -25,11 +28,12 @@ namespace tarkov_settings.Setting
                     Contrast = 50.0,
                     Gamma = 1.70,
                     Saturation = 40,
-                    BlackStabilizer = 30,
-                    WhiteStabilizer = 25,
+                    BlackStabilizer = 30.0,
+                    WhiteStabilizer = 25.0,
                     IsDynamicAdaptive = false,
-                    Dehaze = 20,
-                    FoliagePop = 25
+                    Dehaze = 20.0,
+                    FoliagePop = 25.0,
+                    Sharpening = 50
                 }
             };
             setting.SelectedProfile = "Escape from Tarkov";
@@ -45,7 +49,6 @@ namespace tarkov_settings.Setting
                 setting = CreateDefault();
             }
 
-            // [구버전 호환 마이그레이션] 기존 0.0 ~ 1.0 소수점을 0 ~ 100 정수로 안전 변환
             bool migrated = false;
             foreach (var p in setting.Profiles)
             {
@@ -61,7 +64,6 @@ namespace tarkov_settings.Setting
                 }
             }
 
-            // 구버전 파일이었던 경우, 새 규격(40, 50, Dehaze:0 등)으로 디스크에 즉시 덮어써서 영구 업그레이드
             if (migrated)
             {
                 setting.Save();

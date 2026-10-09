@@ -22,6 +22,11 @@
             this.layoutTablePanel = new System.Windows.Forms.TableLayoutPanel();
             this.ColorPanel = new System.Windows.Forms.Panel();
             this.OpticsGroup = new System.Windows.Forms.GroupBox();
+            this.OpticsNoticeLabel = new System.Windows.Forms.Label();
+            this.panelSharpen = new System.Windows.Forms.Panel();
+            this.SharpenLabel = new System.Windows.Forms.Label();
+            this.SharpenText = new System.Windows.Forms.TextBox();
+            this.SharpenBar = new System.Windows.Forms.TrackBar();
             this.panelFoliage = new System.Windows.Forms.Panel();
             this.FoliageLabel = new System.Windows.Forms.Label();
             this.FoliageText = new System.Windows.Forms.TextBox();
@@ -84,9 +89,12 @@
             this.contrastToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.gammaToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.dvlToolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.sharpenToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.layoutTablePanel.SuspendLayout();
             this.ColorPanel.SuspendLayout();
             this.OpticsGroup.SuspendLayout();
+            this.panelSharpen.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.SharpenBar)).BeginInit();
             this.panelFoliage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.FoliageBar)).BeginInit();
             this.panelDehaze.SuspendLayout();
@@ -148,23 +156,78 @@
             // 
             // OpticsGroup
             // 
+            this.OpticsGroup.Controls.Add(this.OpticsNoticeLabel);
+            this.OpticsGroup.Controls.Add(this.panelSharpen);
             this.OpticsGroup.Controls.Add(this.panelFoliage);
             this.OpticsGroup.Controls.Add(this.panelDehaze);
-            this.OpticsGroup.Location = new System.Drawing.Point(3, 448);
+            this.OpticsGroup.Location = new System.Drawing.Point(3, 408);
             this.OpticsGroup.Name = "OpticsGroup";
-            this.OpticsGroup.Size = new System.Drawing.Size(490, 153);
+            this.OpticsGroup.Size = new System.Drawing.Size(490, 195);
             this.OpticsGroup.TabIndex = 22;
             this.OpticsGroup.TabStop = false;
             this.OpticsGroup.Text = "Optics";
+            // 
+            // OpticsNoticeLabel
+            // 
+            this.OpticsNoticeLabel.AutoSize = true;
+            this.OpticsNoticeLabel.Font = new System.Drawing.Font("Consolas", 8F);
+            this.OpticsNoticeLabel.ForeColor = System.Drawing.Color.DimGray;
+            this.OpticsNoticeLabel.Location = new System.Drawing.Point(10, 168);
+            this.OpticsNoticeLabel.Name = "OpticsNoticeLabel";
+            this.OpticsNoticeLabel.Size = new System.Drawing.Size(469, 13);
+            this.OpticsNoticeLabel.TabIndex = 31;
+            this.OpticsNoticeLabel.Text = "* 드라이버 선명도는 게임 실행 시 적용됩니다 (게임 중 변경 시 재실행 필요)";
+            // 
+            // panelSharpen
+            // 
+            this.panelSharpen.Controls.Add(this.SharpenLabel);
+            this.panelSharpen.Controls.Add(this.SharpenText);
+            this.panelSharpen.Controls.Add(this.SharpenBar);
+            this.panelSharpen.Location = new System.Drawing.Point(6, 115);
+            this.panelSharpen.Name = "panelSharpen";
+            this.panelSharpen.Size = new System.Drawing.Size(481, 48);
+            this.panelSharpen.TabIndex = 30;
+            // 
+            // SharpenLabel
+            // 
+            this.SharpenLabel.AutoSize = true;
+            this.SharpenLabel.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.SharpenLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
+            this.SharpenLabel.Location = new System.Drawing.Point(20, 3);
+            this.SharpenLabel.Name = "SharpenLabel";
+            this.SharpenLabel.Size = new System.Drawing.Size(154, 14);
+            this.SharpenLabel.TabIndex = 18;
+            this.SharpenLabel.Text = "Sharpening (선명도)*";
+            this.SharpenLabel.DoubleClick += new System.EventHandler(this.ColorLabel_DClick);
+            // 
+            // SharpenText
+            // 
+            this.SharpenText.Location = new System.Drawing.Point(424, 18);
+            this.SharpenText.Name = "SharpenText";
+            this.SharpenText.ReadOnly = true;
+            this.SharpenText.Size = new System.Drawing.Size(41, 22);
+            this.SharpenText.TabIndex = 19;
+            this.SharpenText.Text = "0";
+            this.SharpenText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // SharpenBar
+            // 
+            this.SharpenBar.Location = new System.Drawing.Point(13, 18);
+            this.SharpenBar.Maximum = 100;
+            this.SharpenBar.Name = "SharpenBar";
+            this.SharpenBar.Size = new System.Drawing.Size(397, 45);
+            this.SharpenBar.TabIndex = 17;
+            this.SharpenBar.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.SharpenBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
             // 
             // panelFoliage
             // 
             this.panelFoliage.Controls.Add(this.FoliageLabel);
             this.panelFoliage.Controls.Add(this.FoliageText);
             this.panelFoliage.Controls.Add(this.FoliageBar);
-            this.panelFoliage.Location = new System.Drawing.Point(6, 82);
+            this.panelFoliage.Location = new System.Drawing.Point(6, 66);
             this.panelFoliage.Name = "panelFoliage";
-            this.panelFoliage.Size = new System.Drawing.Size(481, 62);
+            this.panelFoliage.Size = new System.Drawing.Size(481, 48);
             this.panelFoliage.TabIndex = 29;
             // 
             // FoliageLabel
@@ -172,7 +235,7 @@
             this.FoliageLabel.AutoSize = true;
             this.FoliageLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.FoliageLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.FoliageLabel.Location = new System.Drawing.Point(20, 5);
+            this.FoliageLabel.Location = new System.Drawing.Point(20, 3);
             this.FoliageLabel.Name = "FoliageLabel";
             this.FoliageLabel.Size = new System.Drawing.Size(182, 14);
             this.FoliageLabel.TabIndex = 18;
@@ -181,7 +244,7 @@
             // 
             // FoliageText
             // 
-            this.FoliageText.Location = new System.Drawing.Point(424, 22);
+            this.FoliageText.Location = new System.Drawing.Point(424, 18);
             this.FoliageText.Name = "FoliageText";
             this.FoliageText.ReadOnly = true;
             this.FoliageText.Size = new System.Drawing.Size(41, 22);
@@ -191,7 +254,7 @@
             // 
             // FoliageBar
             // 
-            this.FoliageBar.Location = new System.Drawing.Point(13, 22);
+            this.FoliageBar.Location = new System.Drawing.Point(13, 18);
             this.FoliageBar.Maximum = 100;
             this.FoliageBar.Name = "FoliageBar";
             this.FoliageBar.Size = new System.Drawing.Size(397, 45);
@@ -204,9 +267,9 @@
             this.panelDehaze.Controls.Add(this.DehazeLabel);
             this.panelDehaze.Controls.Add(this.DehazeText);
             this.panelDehaze.Controls.Add(this.DehazeBar);
-            this.panelDehaze.Location = new System.Drawing.Point(6, 18);
+            this.panelDehaze.Location = new System.Drawing.Point(6, 17);
             this.panelDehaze.Name = "panelDehaze";
-            this.panelDehaze.Size = new System.Drawing.Size(481, 62);
+            this.panelDehaze.Size = new System.Drawing.Size(481, 48);
             this.panelDehaze.TabIndex = 28;
             // 
             // DehazeLabel
@@ -214,7 +277,7 @@
             this.DehazeLabel.AutoSize = true;
             this.DehazeLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.DehazeLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.DehazeLabel.Location = new System.Drawing.Point(20, 5);
+            this.DehazeLabel.Location = new System.Drawing.Point(20, 3);
             this.DehazeLabel.Name = "DehazeLabel";
             this.DehazeLabel.Size = new System.Drawing.Size(126, 14);
             this.DehazeLabel.TabIndex = 18;
@@ -223,7 +286,7 @@
             // 
             // DehazeText
             // 
-            this.DehazeText.Location = new System.Drawing.Point(424, 22);
+            this.DehazeText.Location = new System.Drawing.Point(424, 18);
             this.DehazeText.Name = "DehazeText";
             this.DehazeText.ReadOnly = true;
             this.DehazeText.Size = new System.Drawing.Size(41, 22);
@@ -233,7 +296,7 @@
             // 
             // DehazeBar
             // 
-            this.DehazeBar.Location = new System.Drawing.Point(13, 22);
+            this.DehazeBar.Location = new System.Drawing.Point(13, 18);
             this.DehazeBar.Maximum = 100;
             this.DehazeBar.Name = "DehazeBar";
             this.DehazeBar.Size = new System.Drawing.Size(397, 45);
@@ -244,7 +307,7 @@
             // TogglePreviewButton
             // 
             this.TogglePreviewButton.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.TogglePreviewButton.Location = new System.Drawing.Point(505, 565);
+            this.TogglePreviewButton.Location = new System.Drawing.Point(505, 570);
             this.TogglePreviewButton.Name = "TogglePreviewButton";
             this.TogglePreviewButton.Size = new System.Drawing.Size(75, 25);
             this.TogglePreviewButton.TabIndex = 21;
@@ -348,9 +411,9 @@
             // 
             this.StabilizerGroup.Controls.Add(this.panel2);
             this.StabilizerGroup.Controls.Add(this.panel1);
-            this.StabilizerGroup.Location = new System.Drawing.Point(3, 293);
+            this.StabilizerGroup.Location = new System.Drawing.Point(3, 275);
             this.StabilizerGroup.Name = "StabilizerGroup";
-            this.StabilizerGroup.Size = new System.Drawing.Size(490, 150);
+            this.StabilizerGroup.Size = new System.Drawing.Size(490, 130);
             this.StabilizerGroup.TabIndex = 20;
             this.StabilizerGroup.TabStop = false;
             this.StabilizerGroup.Text = "Stabilizer";
@@ -360,9 +423,9 @@
             this.panel2.Controls.Add(this.WhiteStabilizerLabel);
             this.panel2.Controls.Add(this.WhiteStabilizerText);
             this.panel2.Controls.Add(this.WhiteStabilizerBar);
-            this.panel2.Location = new System.Drawing.Point(6, 82);
+            this.panel2.Location = new System.Drawing.Point(6, 72);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(481, 62);
+            this.panel2.Size = new System.Drawing.Size(481, 52);
             this.panel2.TabIndex = 27;
             // 
             // WhiteStabilizerLabel
@@ -370,7 +433,7 @@
             this.WhiteStabilizerLabel.AutoSize = true;
             this.WhiteStabilizerLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.WhiteStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.WhiteStabilizerLabel.Location = new System.Drawing.Point(20, 5);
+            this.WhiteStabilizerLabel.Location = new System.Drawing.Point(20, 3);
             this.WhiteStabilizerLabel.Name = "WhiteStabilizerLabel";
             this.WhiteStabilizerLabel.Size = new System.Drawing.Size(119, 14);
             this.WhiteStabilizerLabel.TabIndex = 18;
@@ -379,7 +442,7 @@
             // 
             // WhiteStabilizerText
             // 
-            this.WhiteStabilizerText.Location = new System.Drawing.Point(424, 22);
+            this.WhiteStabilizerText.Location = new System.Drawing.Point(424, 18);
             this.WhiteStabilizerText.Name = "WhiteStabilizerText";
             this.WhiteStabilizerText.ReadOnly = true;
             this.WhiteStabilizerText.Size = new System.Drawing.Size(41, 22);
@@ -389,7 +452,7 @@
             // 
             // WhiteStabilizerBar
             // 
-            this.WhiteStabilizerBar.Location = new System.Drawing.Point(13, 22);
+            this.WhiteStabilizerBar.Location = new System.Drawing.Point(13, 18);
             this.WhiteStabilizerBar.Maximum = 100;
             this.WhiteStabilizerBar.Name = "WhiteStabilizerBar";
             this.WhiteStabilizerBar.Size = new System.Drawing.Size(397, 45);
@@ -403,16 +466,16 @@
             this.panel1.Controls.Add(this.BlackStabilizerLabel);
             this.panel1.Controls.Add(this.BlackStabilizerText);
             this.panel1.Controls.Add(this.BlackStabilizerBar);
-            this.panel1.Location = new System.Drawing.Point(6, 18);
+            this.panel1.Location = new System.Drawing.Point(6, 16);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(481, 62);
+            this.panel1.Size = new System.Drawing.Size(481, 52);
             this.panel1.TabIndex = 26;
             // 
             // DynamicAdaptiveCheckBox
             // 
             this.DynamicAdaptiveCheckBox.AutoSize = true;
             this.DynamicAdaptiveCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.DynamicAdaptiveCheckBox.Location = new System.Drawing.Point(285, 3);
+            this.DynamicAdaptiveCheckBox.Location = new System.Drawing.Point(285, 2);
             this.DynamicAdaptiveCheckBox.Name = "DynamicAdaptiveCheckBox";
             this.DynamicAdaptiveCheckBox.Size = new System.Drawing.Size(180, 18);
             this.DynamicAdaptiveCheckBox.TabIndex = 20;
@@ -425,7 +488,7 @@
             this.BlackStabilizerLabel.AutoSize = true;
             this.BlackStabilizerLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.BlackStabilizerLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.BlackStabilizerLabel.Location = new System.Drawing.Point(20, 5);
+            this.BlackStabilizerLabel.Location = new System.Drawing.Point(20, 3);
             this.BlackStabilizerLabel.Name = "BlackStabilizerLabel";
             this.BlackStabilizerLabel.Size = new System.Drawing.Size(119, 14);
             this.BlackStabilizerLabel.TabIndex = 18;
@@ -434,7 +497,7 @@
             // 
             // BlackStabilizerText
             // 
-            this.BlackStabilizerText.Location = new System.Drawing.Point(424, 22);
+            this.BlackStabilizerText.Location = new System.Drawing.Point(424, 18);
             this.BlackStabilizerText.Name = "BlackStabilizerText";
             this.BlackStabilizerText.ReadOnly = true;
             this.BlackStabilizerText.Size = new System.Drawing.Size(41, 22);
@@ -444,7 +507,7 @@
             // 
             // BlackStabilizerBar
             // 
-            this.BlackStabilizerBar.Location = new System.Drawing.Point(13, 22);
+            this.BlackStabilizerBar.Location = new System.Drawing.Point(13, 18);
             this.BlackStabilizerBar.Maximum = 100;
             this.BlackStabilizerBar.Name = "BlackStabilizerBar";
             this.BlackStabilizerBar.Size = new System.Drawing.Size(397, 45);
@@ -457,7 +520,7 @@
             this.minimizeStartCheckBox.AutoSize = true;
             this.minimizeStartCheckBox.BackColor = System.Drawing.Color.Transparent;
             this.minimizeStartCheckBox.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.minimizeStartCheckBox.Location = new System.Drawing.Point(505, 340);
+            this.minimizeStartCheckBox.Location = new System.Drawing.Point(505, 312);
             this.minimizeStartCheckBox.Name = "minimizeStartCheckBox";
             this.minimizeStartCheckBox.Size = new System.Drawing.Size(138, 32);
             this.minimizeStartCheckBox.TabIndex = 16;
@@ -470,7 +533,7 @@
             this.DisplayCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.DisplayCombo.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.DisplayCombo.FormattingEnabled = true;
-            this.DisplayCombo.Location = new System.Drawing.Point(505, 305);
+            this.DisplayCombo.Location = new System.Drawing.Point(505, 278);
             this.DisplayCombo.Name = "DisplayCombo";
             this.DisplayCombo.Size = new System.Drawing.Size(139, 22);
             this.DisplayCombo.TabIndex = 15;
@@ -481,7 +544,7 @@
             this.DVLGroupBox.Controls.Add(this.DVLPanel);
             this.DVLGroupBox.Location = new System.Drawing.Point(502, 93);
             this.DVLGroupBox.Name = "DVLGroupBox";
-            this.DVLGroupBox.Size = new System.Drawing.Size(145, 195);
+            this.DVLGroupBox.Size = new System.Drawing.Size(145, 175);
             this.DVLGroupBox.TabIndex = 13;
             this.DVLGroupBox.TabStop = false;
             this.DVLGroupBox.Text = "DVL";
@@ -494,7 +557,7 @@
             this.DVLPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.DVLPanel.Location = new System.Drawing.Point(3, 18);
             this.DVLPanel.Name = "DVLPanel";
-            this.DVLPanel.Size = new System.Drawing.Size(139, 174);
+            this.DVLPanel.Size = new System.Drawing.Size(139, 154);
             this.DVLPanel.TabIndex = 0;
             // 
             // DVLLabel
@@ -502,7 +565,7 @@
             this.DVLLabel.AutoSize = true;
             this.DVLLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.DVLLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.DVLLabel.Location = new System.Drawing.Point(10, 5);
+            this.DVLLabel.Location = new System.Drawing.Point(10, 3);
             this.DVLLabel.Name = "DVLLabel";
             this.DVLLabel.Size = new System.Drawing.Size(119, 28);
             this.DVLLabel.TabIndex = 10;
@@ -512,18 +575,18 @@
             // 
             // DVLBar
             // 
-            this.DVLBar.Location = new System.Drawing.Point(56, 35);
+            this.DVLBar.Location = new System.Drawing.Point(56, 32);
             this.DVLBar.Maximum = 63;
             this.DVLBar.Name = "DVLBar";
             this.DVLBar.Orientation = System.Windows.Forms.Orientation.Vertical;
-            this.DVLBar.Size = new System.Drawing.Size(45, 105);
+            this.DVLBar.Size = new System.Drawing.Size(45, 90);
             this.DVLBar.TabIndex = 9;
             this.DVLBar.TickStyle = System.Windows.Forms.TickStyle.None;
             this.DVLBar.ValueChanged += new System.EventHandler(this.TrackBar_ValueChanged);
             // 
             // DVLText
             // 
-            this.DVLText.Location = new System.Drawing.Point(46, 145);
+            this.DVLText.Location = new System.Drawing.Point(46, 126);
             this.DVLText.Name = "DVLText";
             this.DVLText.ReadOnly = true;
             this.DVLText.Size = new System.Drawing.Size(41, 22);
@@ -536,7 +599,7 @@
             this.colorGroupBox.Controls.Add(this.colorTablePanel);
             this.colorGroupBox.Location = new System.Drawing.Point(3, 93);
             this.colorGroupBox.Name = "colorGroupBox";
-            this.colorGroupBox.Size = new System.Drawing.Size(490, 195);
+            this.colorGroupBox.Size = new System.Drawing.Size(490, 175);
             this.colorGroupBox.TabIndex = 12;
             this.colorGroupBox.TabStop = false;
             this.colorGroupBox.Text = "Color";
@@ -555,7 +618,7 @@
             this.colorTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
             this.colorTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
             this.colorTablePanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
-            this.colorTablePanel.Size = new System.Drawing.Size(484, 174);
+            this.colorTablePanel.Size = new System.Drawing.Size(484, 154);
             this.colorTablePanel.TabIndex = 1;
             // 
             // brightnessPanel
@@ -566,12 +629,12 @@
             this.brightnessPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.brightnessPanel.Location = new System.Drawing.Point(3, 3);
             this.brightnessPanel.Name = "brightnessPanel";
-            this.brightnessPanel.Size = new System.Drawing.Size(478, 52);
+            this.brightnessPanel.Size = new System.Drawing.Size(478, 45);
             this.brightnessPanel.TabIndex = 0;
             // 
             // BrightnessBar
             // 
-            this.BrightnessBar.Location = new System.Drawing.Point(13, 20);
+            this.BrightnessBar.Location = new System.Drawing.Point(13, 16);
             this.BrightnessBar.Maximum = 100;
             this.BrightnessBar.Minimum = 0;
             this.BrightnessBar.Name = "BrightnessBar";
@@ -586,7 +649,7 @@
             this.BrightnessLabel.AutoSize = true;
             this.BrightnessLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.BrightnessLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.BrightnessLabel.Location = new System.Drawing.Point(20, 3);
+            this.BrightnessLabel.Location = new System.Drawing.Point(20, 1);
             this.BrightnessLabel.Name = "BrightnessLabel";
             this.BrightnessLabel.Size = new System.Drawing.Size(77, 14);
             this.BrightnessLabel.TabIndex = 21;
@@ -595,7 +658,7 @@
             // 
             // BrightnessText
             // 
-            this.BrightnessText.Location = new System.Drawing.Point(424, 20);
+            this.BrightnessText.Location = new System.Drawing.Point(424, 16);
             this.BrightnessText.Name = "BrightnessText";
             this.BrightnessText.ReadOnly = true;
             this.BrightnessText.Size = new System.Drawing.Size(41, 22);
@@ -609,14 +672,14 @@
             this.contrastPanel.Controls.Add(this.ContrastText);
             this.contrastPanel.Controls.Add(this.ContrastLabel);
             this.contrastPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.contrastPanel.Location = new System.Drawing.Point(3, 61);
+            this.contrastPanel.Location = new System.Drawing.Point(3, 54);
             this.contrastPanel.Name = "contrastPanel";
-            this.contrastPanel.Size = new System.Drawing.Size(478, 52);
+            this.contrastPanel.Size = new System.Drawing.Size(478, 45);
             this.contrastPanel.TabIndex = 1;
             // 
             // ContrastBar
             // 
-            this.ContrastBar.Location = new System.Drawing.Point(13, 20);
+            this.ContrastBar.Location = new System.Drawing.Point(13, 16);
             this.ContrastBar.Maximum = 100;
             this.ContrastBar.Minimum = 0;
             this.ContrastBar.Name = "ContrastBar";
@@ -628,7 +691,7 @@
             // 
             // ContrastText
             // 
-            this.ContrastText.Location = new System.Drawing.Point(424, 20);
+            this.ContrastText.Location = new System.Drawing.Point(424, 16);
             this.ContrastText.Name = "ContrastText";
             this.ContrastText.ReadOnly = true;
             this.ContrastText.Size = new System.Drawing.Size(41, 22);
@@ -641,7 +704,7 @@
             this.ContrastLabel.AutoSize = true;
             this.ContrastLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.ContrastLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.ContrastLabel.Location = new System.Drawing.Point(20, 3);
+            this.ContrastLabel.Location = new System.Drawing.Point(20, 1);
             this.ContrastLabel.Name = "ContrastLabel";
             this.ContrastLabel.Size = new System.Drawing.Size(63, 14);
             this.ContrastLabel.TabIndex = 22;
@@ -654,14 +717,14 @@
             this.gammaPanel.Controls.Add(this.GammaBar);
             this.gammaPanel.Controls.Add(this.GammaLabel);
             this.gammaPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gammaPanel.Location = new System.Drawing.Point(3, 119);
+            this.gammaPanel.Location = new System.Drawing.Point(3, 105);
             this.gammaPanel.Name = "gammaPanel";
-            this.gammaPanel.Size = new System.Drawing.Size(478, 52);
+            this.gammaPanel.Size = new System.Drawing.Size(478, 46);
             this.gammaPanel.TabIndex = 2;
             // 
             // GammaText
             // 
-            this.GammaText.Location = new System.Drawing.Point(424, 20);
+            this.GammaText.Location = new System.Drawing.Point(424, 16);
             this.GammaText.Name = "GammaText";
             this.GammaText.ReadOnly = true;
             this.GammaText.Size = new System.Drawing.Size(41, 22);
@@ -671,7 +734,7 @@
             // 
             // GammaBar
             // 
-            this.GammaBar.Location = new System.Drawing.Point(13, 20);
+            this.GammaBar.Location = new System.Drawing.Point(13, 16);
             this.GammaBar.Maximum = 280;
             this.GammaBar.Minimum = 40;
             this.GammaBar.Name = "GammaBar";
@@ -686,7 +749,7 @@
             this.GammaLabel.AutoSize = true;
             this.GammaLabel.Cursor = System.Windows.Forms.Cursors.Hand;
             this.GammaLabel.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.GammaLabel.Location = new System.Drawing.Point(20, 3);
+            this.GammaLabel.Location = new System.Drawing.Point(20, 1);
             this.GammaLabel.Name = "GammaLabel";
             this.GammaLabel.Size = new System.Drawing.Size(42, 14);
             this.GammaLabel.TabIndex = 23;
@@ -815,6 +878,13 @@
             this.dvlToolTip.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.dvlToolTip.ToolTipTitle = "Saturation";
             // 
+            // sharpenToolTip
+            // 
+            this.sharpenToolTip.IsBalloon = true;
+            this.sharpenToolTip.ShowAlways = true;
+            this.sharpenToolTip.ToolTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            this.sharpenToolTip.ToolTipTitle = "[NVIDIA 드라이버 레벨 선명도]";
+            // 
             // MainForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -830,7 +900,12 @@
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.layoutTablePanel.ResumeLayout(false);
             this.ColorPanel.ResumeLayout(false);
+            this.ColorPanel.PerformLayout();
             this.OpticsGroup.ResumeLayout(false);
+            this.OpticsGroup.PerformLayout();
+            this.panelSharpen.ResumeLayout(false);
+            this.panelSharpen.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.SharpenBar)).EndInit();
             this.panelFoliage.ResumeLayout(false);
             this.panelFoliage.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.FoliageBar)).EndInit();
@@ -903,6 +978,7 @@
         private System.Windows.Forms.ToolTip brightnessToolTip;
         private System.Windows.Forms.ToolTip contrastToolTip;
         private System.Windows.Forms.ToolTip gammaToolTip;
+        private System.Windows.Forms.ToolTip sharpenToolTip;
         private System.Windows.Forms.Label BlackStabilizerLabel;
         private System.Windows.Forms.TrackBar BlackStabilizerBar;
         private System.Windows.Forms.GroupBox StabilizerGroup;
@@ -937,5 +1013,10 @@
         private System.Windows.Forms.Label FoliageLabel;
         private System.Windows.Forms.TextBox FoliageText;
         private System.Windows.Forms.TrackBar FoliageBar;
+        private System.Windows.Forms.Panel panelSharpen;
+        private System.Windows.Forms.Label SharpenLabel;
+        private System.Windows.Forms.TextBox SharpenText;
+        private System.Windows.Forms.TrackBar SharpenBar;
+        private System.Windows.Forms.Label OpticsNoticeLabel;
     }
 }
