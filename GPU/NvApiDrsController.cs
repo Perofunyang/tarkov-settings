@@ -14,14 +14,8 @@ namespace tarkov_settings.GPU
 
         private static IntPtr QueryInterface(uint id)
         {
-            try
-            {
-                return IntPtr.Size == 8 ? NvAPI64_QueryInterface(id) : NvAPI32_QueryInterface(id);
-            }
-            catch
-            {
-                return IntPtr.Zero;
-            }
+            try { return IntPtr.Size == 8 ? NvAPI64_QueryInterface(id) : NvAPI32_QueryInterface(id); }
+            catch { return IntPtr.Zero; }
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -37,7 +31,16 @@ namespace tarkov_settings.GPU
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate int NvAPI_DRS_GetBaseProfile_t(IntPtr hSession, out IntPtr phProfile);
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate int NvAPI_DRS_FindProfileByName_t(IntPtr hSession, ref NVAPI_UNICODE_STRING pProfileName, out IntPtr phProfile);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate int NvAPI_DRS_SetSetting_t(IntPtr hSession, IntPtr hProfile, ref NVDRS_SETTING pSetting);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct NVAPI_UNICODE_STRING
+        {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 2048)]
+            public string Value;
+        }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
         private struct NVDRS_SETTING
@@ -54,17 +57,14 @@ namespace tarkov_settings.GPU
             public uint u32CurrentValue;
         }
 
-        private const uint DRS_SETTING_VER = 0x00010000 | 2072; // 구조체 크기 바인딩
-        private const uint SHARPEN_FILTER_EN = 0x00598928;       // Classic Sharpen ON/OFF
-        private const uint SHARPEN_FILTER_VALUE = 0x002ED8CD;    // Classic Sharpen Value (0~100)
-        private const uint SHARPEN_FILTER_DENOISE = 0x002ED8CE;  // Film Grain Denoise (0~100)
-        private const uint NIS_ENABLE = 0x00ABAC21;              // Modern NIS ON/OFF
-        private const uint NIS_SHARPEN_VALUE = 0x00ABAB21;       // Modern NIS Sharpen Value (0~100)
+        private const uint DRS_SETTING_VER = 0x00010000 | 2072;
+        private const uint SHARPEN_FILTER_EN = 0x00598928;
+        private const uint SHARPEN_FILTER_VALUE = 0x002ED8CD;
+        private const uint SHARPEN_FILTER_DENOISE = 0x002ED8CE;
+        private const uint NIS_ENABLE = 0x00ABAC21;
+        private const uint NIS_SHARPEN_VALUE = 0x00ABAB21;
         #endregion
 
-        /// <summary>
-        /// 엔비디아 드라이버 DRS 데이터베이스에 선명도 레지스터를 안전하게 주입 및 영구 저장합니다.
-        /// </summary>
         public static bool ApplySharpening(int sharpenPercent)
         {
             try
@@ -80,6 +80,7 @@ namespace tarkov_settings.GPU
                 IntPtr pLoadSettings = QueryInterface(0x375ECD69);
                 IntPtr pSaveSettings = QueryInterface(0xFC1349AB);
                 IntPtr pGetBaseProfile = QueryInterface(0xC2266519);
+                IntPtr pFindProfile = QueryInterface(0x7E4A11B8);
                 IntPtr pSetSetting = QueryInterface(0x577DD202);
 
                 if (pCreateSession == IntPtr.Zero || pSaveSettings == IntPtr.Zero) return false;
@@ -89,6 +90,7 @@ namespace tarkov_settings.GPU
                 var drsLoad = (NvAPI_DRS_LoadSettings_t)Marshal.GetDelegateForFunctionPointer(pLoadSettings, typeof(NvAPI_DRS_LoadSettings_t));
                 var drsSave = (NvAPI_DRS_SaveSettings_t)Marshal.GetDelegateForFunctionPointer(pSaveSettings, typeof(NvAPI_DRS_SaveSettings_t));
                 var drsGetBase = (NvAPI_DRS_GetBaseProfile_t)Marshal.GetDelegateForFunctionPointer(pGetBaseProfile, typeof(NvAPI_DRS_GetBaseProfile_t));
+                var drsFind = (NvAPI_DRS_FindProfileByName_t)Marshal.GetDelegateForFunctionPointer(pFindProfile, typeof(NvAPI_DRS_FindProfileByName_t));
                 var drsSet = (NvAPI_DRS_SetSetting_t)Marshal.GetDelegateForFunctionPointer(pSetSetting, typeof(NvAPI_DRS_SetSetting_t));
 
                 if (drsCreate(out IntPtr hSession) != 0) return false;
@@ -96,33 +98,38 @@ namespace tarkov_settings.GPU
                 try
                 {
                     drsLoad(hSession);
-                    if (drsGetBase(hSession, out IntPtr hProfile) == 0)
+
+                    // 1. [중요] 전역(Base) 프로필에 잘못 켜졌던 샤프닝/NIS를 완전히 꺼서 크롬/바탕화면 깜빡임 원천 차단
+                    if (drsGetBase(hSession, out IntPtr hBaseProfile) == 0)
+                    {
+                        SetDword(drsSet, hSession, hBaseProfile, SHARPEN_FILTER_EN, 0u);
+                        SetDword(drsSet, hSession, hBaseProfile, NIS_ENABLE, 0u);
+                    }
+
+                    // 2. [핵심] 오직 'Escape from Tarkov' 전용 프로필을 찾아서 거기에만 단독 주입
+                    var uName = new NVAPI_UNICODE_STRING { Value = "Escape from Tarkov" };
+                    IntPtr hTarkovProfile = IntPtr.Zero;
+
+                    if (drsFind(hSession, ref uName, out hTarkovProfile) == 0 && hTarkovProfile != IntPtr.Zero)
                     {
                         uint isEnable = (sharpenPercent > 0) ? 1u : 0u;
                         uint val = (uint)Math.Max(0, Math.Min(100, sharpenPercent));
 
-                        // 1. [순수 드라이버 샤프닝] 단독 적용 (깜빡임 버그 0%, 프레임 손실 0%)
-                        SetDword(drsSet, hSession, hProfile, SHARPEN_FILTER_EN, isEnable);
-                        SetDword(drsSet, hSession, hProfile, SHARPEN_FILTER_VALUE, val);
-                        SetDword(drsSet, hSession, hProfile, SHARPEN_FILTER_DENOISE, 15u);
-
-                        // 2. [핵심] 까만 네모 깜빡임의 주범인 NIS(이미지 스케일러 타일 연산)는 무조건 OFF(0)로 강제 차단!
-                        SetDword(drsSet, hSession, hProfile, NIS_ENABLE, 0u);
-                        SetDword(drsSet, hSession, hProfile, NIS_SHARPEN_VALUE, 0u);
-
-                        drsSave(hSession);
-                        return true;
+                        SetDword(drsSet, hSession, hTarkovProfile, SHARPEN_FILTER_EN, isEnable);
+                        SetDword(drsSet, hSession, hTarkovProfile, SHARPEN_FILTER_VALUE, val);
+                        SetDword(drsSet, hSession, hTarkovProfile, SHARPEN_FILTER_DENOISE, 15u);
+                        SetDword(drsSet, hSession, hTarkovProfile, NIS_ENABLE, 0u); // 타일 버그 차단
                     }
+
+                    drsSave(hSession);
+                    return true;
                 }
                 finally
                 {
                     drsDestroy(hSession);
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[NvApiDrs Exception] {ex.Message}");
-            }
+            catch { }
             return false;
         }
 
@@ -132,7 +139,7 @@ namespace tarkov_settings.GPU
             {
                 version = DRS_SETTING_VER,
                 settingId = settingId,
-                settingType = 0, // DWORD
+                settingType = 0,
                 u32CurrentValue = value
             };
             drsSet(hSession, hProfile, ref s);
