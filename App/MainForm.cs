@@ -246,8 +246,19 @@ namespace tarkov_settings
             int w = 640;
             int h = 360;
 
-            _cachedRawSample?.Dispose();
-            _cachedProcessedBitmap?.Dispose();
+            // [핵심 해결] PictureBox가 폐기될 비트맵을 그리지 못하도록 참조를 먼저 안전하게 해제
+            if (this.PreviewPictureBox != null)
+            {
+                this.PreviewPictureBox.Image = null;
+            }
+
+            var oldRaw = _cachedRawSample;
+            var oldProc = _cachedProcessedBitmap;
+            _cachedRawSample = null;
+            _cachedProcessedBitmap = null;
+
+            oldRaw?.Dispose();
+            oldProc?.Dispose();
 
             _cachedRawSample = new Bitmap(w, h, PixelFormat.Format24bppRgb);
             using (Graphics g = Graphics.FromImage(_cachedRawSample))
@@ -274,6 +285,10 @@ namespace tarkov_settings
             if (_isPreviewExpanded)
             {
                 RenderAndRefreshPreview();
+            }
+            else
+            {
+                UpdateDisplayedImage();
             }
         }
 
@@ -482,14 +497,16 @@ namespace tarkov_settings
         {
             if (this.PreviewPictureBox == null) return;
 
-            if (this.CompareOriginalCheckBox != null && this.CompareOriginalCheckBox.Checked)
+            Bitmap target = (this.CompareOriginalCheckBox != null && this.CompareOriginalCheckBox.Checked)
+                ? _cachedRawSample
+                : (_cachedProcessedBitmap ?? _cachedRawSample);
+
+            // 동일한 비트맵이면 불필요한 재할당을 건너뛰어 GDI+ 부하 방지
+            if (this.PreviewPictureBox.Image != target)
             {
-                this.PreviewPictureBox.Image = _cachedRawSample;
+                this.PreviewPictureBox.Image = target;
             }
-            else
-            {
-                this.PreviewPictureBox.Image = _cachedProcessedBitmap ?? _cachedRawSample;
-            }
+            this.PreviewPictureBox.Invalidate();
         }
 
         #region Procedural Sample Generators
