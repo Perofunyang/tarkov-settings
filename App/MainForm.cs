@@ -43,6 +43,11 @@ namespace tarkov_settings
         private int _bufferWidth = 0;
         private int _bufferHeight = 0;
 
+        // [최적화] 매 프레임 768개 객체 할당을 방지하는 Zero-Alloc 고정 버퍼
+        private readonly PointF[] _ptsR = new PointF[256];
+        private readonly PointF[] _ptsG = new PointF[256];
+        private readonly PointF[] _ptsB = new PointF[256];
+
         protected override CreateParams CreateParams
         {
             get
@@ -75,7 +80,8 @@ namespace tarkov_settings
                 _drsDebounceTimer.Stop();
                 if (gpu.Vendor == GPUVendor.NVIDIA)
                 {
-                    NvApiDrsController.ApplySharpening(this.Sharpening);
+                    int val = this.Sharpening;
+                    Task.Run(() => NvApiDrsController.ApplySharpening(val));
                 }
             };
 
@@ -458,17 +464,13 @@ namespace tarkov_settings
                     g.DrawRectangle(borderPen, pad, pad, plotW, plotH);
                 }
 
-                PointF[] ptsR = new PointF[256];
-                PointF[] ptsG = new PointF[256];
-                PointF[] ptsB = new PointF[256];
-
                 bool isSame = true;
                 for (int i = 0; i < 256; i++)
                 {
                     float x = pad + ((float)i / 255f) * plotW;
-                    ptsR[i] = new PointF(x, (h - pad) - (lutR[i] / 255f) * plotH);
-                    ptsG[i] = new PointF(x, (h - pad) - (lutG[i] / 255f) * plotH);
-                    ptsB[i] = new PointF(x, (h - pad) - (lutB[i] / 255f) * plotH);
+                    _ptsR[i] = new PointF(x, (h - pad) - (lutR[i] / 255f) * plotH);
+                    _ptsG[i] = new PointF(x, (h - pad) - (lutG[i] / 255f) * plotH);
+                    _ptsB[i] = new PointF(x, (h - pad) - (lutB[i] / 255f) * plotH);
 
                     if (lutR[i] != lutG[i] || lutG[i] != lutB[i])
                         isSame = false;
@@ -477,16 +479,16 @@ namespace tarkov_settings
                 if (isSame)
                 {
                     using (Pen curvePen = new Pen(Color.FromArgb(0, 255, 136), 2f))
-                        g.DrawLines(curvePen, ptsG);
+                        g.DrawLines(curvePen, _ptsG);
                 }
                 else
                 {
                     using (Pen bPen = new Pen(Color.FromArgb(70, 130, 255), 1.5f))
-                        g.DrawLines(bPen, ptsB);
+                        g.DrawLines(bPen, _ptsB);
                     using (Pen gPen = new Pen(Color.FromArgb(0, 255, 136), 1.5f))
-                        g.DrawLines(gPen, ptsG);
+                        g.DrawLines(gPen, _ptsG);
                     using (Pen rPen = new Pen(Color.FromArgb(255, 75, 75), 1.5f))
-                        g.DrawLines(rPen, ptsR);
+                        g.DrawLines(rPen, _ptsR);
                 }
             }
 
@@ -580,7 +582,10 @@ namespace tarkov_settings
             if (current != null && current.IsEnabled && current.TargetProcesses != null)
             {
                 if (current.TargetProcesses.Any(target =>
-                    string.Equals(target.Trim(), processName.Trim(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    string cleanTarget = target.Replace(".exe", "").Trim();
+                    return string.Equals(cleanTarget, processName.Trim(), StringComparison.OrdinalIgnoreCase);
+                }))
                 {
                     return current;
                 }
@@ -667,7 +672,8 @@ namespace tarkov_settings
             // 엔비디아 DRS 선명도 커밋
             if (gpu.Vendor == GPUVendor.NVIDIA)
             {
-                NvApiDrsController.ApplySharpening(profile.Sharpening);
+                int sharpVal = profile.Sharpening;
+                Task.Run(() => NvApiDrsController.ApplySharpening(sharpVal));
             }
         }
 
@@ -778,7 +784,7 @@ namespace tarkov_settings
 
             var processes = TargetProcessTextBox.Text
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(p => p.Trim())
+                .Select(p => p.Trim().Replace(".exe", "")) // .exe 자동 제거
                 .Where(p => !string.IsNullOrEmpty(p))
                 .ToList();
 

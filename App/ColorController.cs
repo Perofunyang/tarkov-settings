@@ -65,7 +65,14 @@ namespace tarkov_settings
             try
             {
                 hdc = Display.CreateDC(null, Display.Primary, null, IntPtr.Zero);
-                currentRamps = new RAMP();
+
+                // [수정] 빈 RAMP 대신, Red/Green/Blue에 256개짜리 배열을 미리 1회 할당
+                currentRamps = new RAMP
+                {
+                    Red = new ushort[256],
+                    Green = new ushort[256],
+                    Blue = new ushort[256]
+                };
                 originalRamps = new RAMP();
 
                 if (GetDeviceGammaRamp(hdc, ref originalRamps))
