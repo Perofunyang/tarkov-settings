@@ -24,15 +24,15 @@ namespace tarkov_settings.Setting
                     Name = "Escape from Tarkov",
                     IsEnabled = true,
                     TargetProcesses = new List<string> { "EscapeFromTarkov", "EscapeFromTarkovArena" },
-                    Brightness = 45.0,
+                    Brightness = 50.0,
                     Contrast = 55.0,
-                    Gamma = 2.30,
-                    Saturation = 30,
-                    BlackStabilizer = 25.0,
-                    WhiteStabilizer = 15.0,
+                    Gamma = 2.50,
+                    Saturation = 35,
+                    BlackStabilizer = 50.0,
+                    WhiteStabilizer = 10.0,
                     IsDynamicAdaptive = false,
-                    Dehaze = 20.0,
-                    FoliagePop = 25.0,
+                    Dehaze = 85.0,
+                    FoliagePop = 30.0,
                     Sharpening = 50
                 }
             };
