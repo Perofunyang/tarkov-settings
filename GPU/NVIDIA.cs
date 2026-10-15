@@ -19,6 +19,7 @@ namespace tarkov_settings.GPU
         private int _minSaturation;
         private int _initSaturation;
         private int currentSaturation;
+        private bool _loaded = false;   // DVC 핸들이 정상적으로 로드되었는지
 
         public GPUVendor Vendor
         {
@@ -50,8 +51,19 @@ namespace tarkov_settings.GPU
                 if (value < this.MinSaturation)
                     value = this.MinSaturation;
 
-                DisplayApi.SetDVCLevel(displayHandle, value);
-                this.currentSaturation = value;
+                // Load()에 실패했다면(해당 모니터가 NVIDIA에 연결되지 않았거나 DVC 미지원) 조용히 무시
+                if (!_loaded)
+                    return;
+
+                try
+                {
+                    DisplayApi.SetDVCLevel(displayHandle, value);
+                    this.currentSaturation = value;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("SetDVCLevel 실패", ex);
+                }
             }
         }
 
@@ -74,11 +86,13 @@ namespace tarkov_settings.GPU
         }
 
         public void Load(string display) {
+            _loaded = false;
             displayHandle = DisplayApi.GetAssociatedNvidiaDisplayHandle(display);
             PrivateDisplayDVCInfo dvcInfo = DisplayApi.GetDVCInfo(displayHandle);
             this._maxSaturation = dvcInfo.MaximumLevel;
             this._minSaturation = dvcInfo.MinimumLevel;
             this._initSaturation = this.currentSaturation = dvcInfo.CurrentLevel;
+            _loaded = true;
         }
 
         public void Close() {

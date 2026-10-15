@@ -10,8 +10,8 @@ namespace tarkov_settings
 
         // Utilize repository's file as version notifier
         // I know it sounds very dangerous. but i am broke as hell.
-        private string downloadUrl = @"https://github.com/incheon-kim/tarkov-settings/releases/latest";
-        private string checkUrl = @"https://raw.githubusercontent.com/incheon-kim/tarkov-settings/main/version";
+        private string downloadUrl = @"https://github.com/Perofunyang/tarkov-settings/releases/latest";
+        private string checkUrl = @"https://raw.githubusercontent.com/Perofunyang/tarkov-settings/main/version";
         public UpdateNotifier(Version current)
         {
             InitializeComponent();

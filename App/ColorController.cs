@@ -17,6 +17,8 @@ namespace tarkov_settings
 
         private bool _isRampActive = false;
         private bool _isInitialized = false;
+        private bool _closed = false;       // Close() 완료 후에는 EmergencyReset이 NvAPI를 다시 건드리지 않도록
+        private bool _lastRampOk = true;   // SetDeviceGammaRamp 성공 여부 (상태 변화 시에만 로그)
 
         private ScreenAnalyzer _screenAnalyzer;
         private float _currentDynamicBoost = 0f;
@@ -119,6 +121,7 @@ namespace tarkov_settings
                     {
                         _isRampActive = false;
                         _gammaTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                        _currentDynamicBoost = 0f; // [추가] 이전 동적 부스팅 잔류 수치 리셋
 
                         if (_isInitialized && !IntPtr.Zero.Equals(hdc))
                         {
@@ -145,7 +148,7 @@ namespace tarkov_settings
 
                         if (!IntPtr.Zero.Equals(hdc))
                         {
-                            SetDeviceGammaRamp(hdc, ref currentRamps);
+                            TrackRampResult(SetDeviceGammaRamp(hdc, ref currentRamps));
                         }
 
                         int timerInterval = IsDynamicAdaptive ? 50 : 250;
@@ -154,7 +157,7 @@ namespace tarkov_settings
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ColorController Exception] {ex.Message}");
+                    Logger.Error("ColorController 예외", ex);
                 }
                 finally
                 {
@@ -204,7 +207,7 @@ namespace tarkov_settings
                     hdc = Display.CreateDC(null, Display.Primary, null, IntPtr.Zero);
                     if (!IntPtr.Zero.Equals(hdc))
                     {
-                        SetDeviceGammaRamp(hdc, ref currentRamps);
+                        TrackRampResult(SetDeviceGammaRamp(hdc, ref currentRamps));
                     }
                 }
                 catch { }
@@ -214,6 +217,35 @@ namespace tarkov_settings
                         Display.DeleteDC(hdc);
                 }
             }
+        }
+
+        /// <summary>
+        /// 일부 드라이버/Windows 버전은 항등 램프에서 크게 벗어난 램프를 거부합니다.
+        /// 20Hz로 호출되므로 상태가 바뀔 때만 한 번 기록합니다.
+        /// </summary>
+        private void TrackRampResult(bool ok)
+        {
+            if (ok == _lastRampOk) return;
+            _lastRampOk = ok;
+
+            if (!ok)
+                Logger.Error($"SetDeviceGammaRamp 실패 (Display={Display.Primary}, B={Brightness}, C={Contrast}, G={Gamma:0.00}) - 드라이버가 램프를 거부했을 수 있습니다.");
+            else
+                Logger.Info("SetDeviceGammaRamp 정상 복구");
+        }
+
+        /// <summary>
+        /// 비정상 종료/프로세스 종료 시 호출되는 최후 복구 루틴. 인스턴스가 아직 없으면 아무것도 하지 않습니다.
+        /// </summary>
+        internal static void EmergencyReset()
+        {
+            if (!instance.IsValueCreated) return;
+
+            var c = instance.Value;
+            if (c._closed) return;
+
+            try { c.ResetDVL(); } catch { }
+            try { c.ApplyColorSettings(reset: true); } catch { }
         }
 
         public static (ushort[] Red, ushort[] Green, ushort[] Blue) CalculateLUT(
@@ -340,6 +372,7 @@ namespace tarkov_settings
             {
                 _gammaTimer?.Dispose();
                 _screenAnalyzer?.Dispose();
+                _closed = true;
             }
         }
     }

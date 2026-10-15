@@ -56,6 +56,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App\ColorController.cs" />
+    <Compile Include="App\Logger.cs" />
     <Compile Include="App\ScreenAnalyzer.cs" />
     <Compile Include="App\UpdateNotifier.cs">
       <SubType>Form</SubType>
@@ -75,6 +76,7 @@
     <Compile Include="App\ProcessMonitor.cs" />
     <Compile Include="App\Program.cs" />
     <Compile Include="GPU\IGpu.cs" />
+    <Compile Include="GPU\NullGpu.cs" />
     <Compile Include="GPU\NvApiDrsController.cs" />
     <Compile Include="GPU\NVIDIA.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -86,9 +88,7 @@
     <Compile Include="Setting\AppSetting.cs" />
     <Compile Include="Setting\Profile.cs" />
     <Compile Include="Setting\Setting.cs" />
-    <Compile Include="Setting\Resolution.cs" />
-    <Compile Include="Setting\TarkovSetting.cs" />
-    <Compile Include="Setting\GameSetting.cs" />
+    <Compile Include="Setting\AppPaths.cs" />
     <EmbeddedResource Include="App\MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -116,8 +116,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\nikita.png" />
-    <None Include="Resources\nikita_rainbow.png" />
     <Content Include="T.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

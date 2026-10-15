@@ -6,6 +6,10 @@ namespace tarkov_settings.Setting
 {
     class AppSetting : Settings<AppSetting>
     {
+        /// <summary>설정 파일 스키마 버전. 0 = 버전 필드 도입 이전(구버전) 파일.</summary>
+        public const int CurrentVersion = 1;
+        public int SettingsVersion { get; set; } = 0;
+
         public string SelectedProfile { get; set; } = "Escape from Tarkov";
         public List<Profile> Profiles { get; set; } = new List<Profile>();
         public string display = @"\\.\DISPLAY1";
@@ -17,6 +21,7 @@ namespace tarkov_settings.Setting
         public static AppSetting CreateDefault()
         {
             var setting = new AppSetting();
+            setting.SettingsVersion = CurrentVersion;
             setting.Profiles = new List<Profile>
             {
                 new Profile
@@ -50,18 +55,29 @@ namespace tarkov_settings.Setting
             }
 
             bool migrated = false;
+
             foreach (var p in setting.Profiles)
             {
-                if (p.Brightness > 0 && p.Brightness <= 1.0)
+                if (p.TargetProcesses == null)
                 {
-                    p.Brightness = Math.Round(p.Brightness * 100.0);
+                    p.TargetProcesses = new List<string>();
                     migrated = true;
                 }
-                if (p.Contrast > 0 && p.Contrast <= 1.0)
+            }
+
+            // v0 -> v1: 밝기/대비가 0~1 스케일이던 구버전 값을 0~100 으로 변환 (딱 한 번만 수행)
+            // 버전 필드 없이 값만으로 판단하면, 새 스케일의 정상 값 1(=1%)이 재시작 때마다 100으로 바뀌는 문제가 있었음
+            if (setting.SettingsVersion < 1)
+            {
+                foreach (var p in setting.Profiles)
                 {
-                    p.Contrast = Math.Round(p.Contrast * 100.0);
-                    migrated = true;
+                    if (p.Brightness > 0 && p.Brightness <= 1.0)
+                        p.Brightness = Math.Round(p.Brightness * 100.0);
+                    if (p.Contrast > 0 && p.Contrast <= 1.0)
+                        p.Contrast = Math.Round(p.Contrast * 100.0);
                 }
+                setting.SettingsVersion = CurrentVersion;
+                migrated = true;
             }
 
             if (migrated)

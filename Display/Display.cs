@@ -59,7 +59,7 @@ namespace tarkov_settings
                 catch (NotImplementedException) { }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Display Load Error] {ex.Message}");
+                    Logger.Error("Display Load Error (" + _primary + ")", ex);
                 }
             }
         }

@@ -8,6 +8,9 @@ namespace tarkov_settings.GPU
         // [추가] 멀티스레드 동시 접근 충돌(파일 락 에러)을 방지하는 락 객체
         private static readonly object _drsLock = new object();
 
+        // 마지막으로 "성공적으로" 적용한 샤프닝 값. 같은 값이면 드라이버 파일 쓰기를 건너뜁니다.
+        private static int? _lastAppliedPercent = null;
+
         #region NvAPI DRS Native P/Invoke
         [DllImport("nvapi.dll", EntryPoint = "nvapi_QueryInterface", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr NvAPI32_QueryInterface(uint id);
@@ -71,84 +74,113 @@ namespace tarkov_settings.GPU
         #endregion
 
         /// <summary>
-        /// 전역(Base) 설정은 순정으로 복구하고, 오직 타르코프 게임 프로필에만 클래식 샤프닝을 격리 주입합니다.
+        /// 오직 타르코프 게임 프로필에만 클래식 샤프닝을 격리 주입합니다.
+        /// 사용자가 NVIDIA 제어판에서 직접 설정한 전역(Base) 프로필은 건드리지 않습니다.
+        /// 반환 코드는 로그(tarkov-settings.log)에 기록되므로, 적용이 안 될 때 원인 확인에 사용하세요.
         /// </summary>
-        public static bool ApplySharpening(int sharpenPercent)
+        /// <param name="force">true면 직전 적용값과 같아도 다시 씁니다.</param>
+        public static bool ApplySharpening(int sharpenPercent, bool force = false)
         {
+            sharpenPercent = Math.Max(0, Math.Min(100, sharpenPercent));
+
             // [수정] 여러 스레드(슬라이더 타이머, 알트탭 감지)가 동시에 드라이버 I/O를 호출하지 못하도록 보호
             lock (_drsLock)
             {
+                if (!force && _lastAppliedPercent == sharpenPercent)
+                    return true;
+
                 try
                 {
                     IntPtr pInit = QueryInterface(0x0150E828);
                     if (pInit == IntPtr.Zero) return false;
 
                     var nvInit = (NvAPI_Initialize_t)Marshal.GetDelegateForFunctionPointer(pInit, typeof(NvAPI_Initialize_t));
-                    if (nvInit() != 0) return false;
+                    int initRc = nvInit();
+                    if (initRc != 0)
+                    {
+                        Logger.Error($"NvAPI_Initialize 실패 (rc={initRc})");
+                        return false;
+                    }
 
                     IntPtr pCreateSession = QueryInterface(0x0694D52E);
                     IntPtr pDestroySession = QueryInterface(0xDAD9CFF8);
                     IntPtr pLoadSettings = QueryInterface(0x375ECD69);
                     IntPtr pSaveSettings = QueryInterface(0xFC1349AB);
-                    IntPtr pGetBaseProfile = QueryInterface(0xC2266519);
                     IntPtr pFindProfile = QueryInterface(0x7E4A11B8);
                     IntPtr pSetSetting = QueryInterface(0x577DD202);
-                    IntPtr pDeleteSetting = QueryInterface(0x3D64550F);
 
-                    if (pCreateSession == IntPtr.Zero || pSaveSettings == IntPtr.Zero) return false;
+                    if (pCreateSession == IntPtr.Zero || pDestroySession == IntPtr.Zero || pLoadSettings == IntPtr.Zero ||
+                        pSaveSettings == IntPtr.Zero || pFindProfile == IntPtr.Zero || pSetSetting == IntPtr.Zero)
+                    {
+                        Logger.Error("NvAPI DRS 함수 포인터를 찾지 못했습니다. (드라이버 버전/인터페이스 ID 불일치 가능)");
+                        return false;
+                    }
 
                     var drsCreate = (NvAPI_DRS_CreateSession_t)Marshal.GetDelegateForFunctionPointer(pCreateSession, typeof(NvAPI_DRS_CreateSession_t));
                     var drsDestroy = (NvAPI_DRS_DestroySession_t)Marshal.GetDelegateForFunctionPointer(pDestroySession, typeof(NvAPI_DRS_DestroySession_t));
                     var drsLoad = (NvAPI_DRS_LoadSettings_t)Marshal.GetDelegateForFunctionPointer(pLoadSettings, typeof(NvAPI_DRS_LoadSettings_t));
                     var drsSave = (NvAPI_DRS_SaveSettings_t)Marshal.GetDelegateForFunctionPointer(pSaveSettings, typeof(NvAPI_DRS_SaveSettings_t));
-                    var drsGetBase = (NvAPI_DRS_GetBaseProfile_t)Marshal.GetDelegateForFunctionPointer(pGetBaseProfile, typeof(NvAPI_DRS_GetBaseProfile_t));
                     var drsFind = (NvAPI_DRS_FindProfileByName_t)Marshal.GetDelegateForFunctionPointer(pFindProfile, typeof(NvAPI_DRS_FindProfileByName_t));
                     var drsSet = (NvAPI_DRS_SetSetting_t)Marshal.GetDelegateForFunctionPointer(pSetSetting, typeof(NvAPI_DRS_SetSetting_t));
-                    var drsDelete = (pDeleteSetting != IntPtr.Zero) ? (NvAPI_DRS_DeleteProfileSetting_t)Marshal.GetDelegateForFunctionPointer(pDeleteSetting, typeof(NvAPI_DRS_DeleteProfileSetting_t)) : null;
 
-                    if (drsCreate(out IntPtr hSession) != 0) return false;
+                    int rc = drsCreate(out IntPtr hSession);
+                    if (rc != 0)
+                    {
+                        Logger.Error($"NvAPI_DRS_CreateSession 실패 (rc={rc})");
+                        return false;
+                    }
 
                     try
                     {
-                        drsLoad(hSession);
-
-                        // 1. [자동 자가치유] 전역(Base Profile)에 걸렸던 샤프닝/NIS 오버라이드를 삭제하여 바탕화면/크롬 깜빡임 원천 박멸
-                        if (drsGetBase(hSession, out IntPtr hBaseProfile) == 0)
+                        rc = drsLoad(hSession);
+                        if (rc != 0)
                         {
-                            if (drsDelete != null)
-                            {
-                                drsDelete(hSession, hBaseProfile, SHARPEN_FILTER_EN);
-                                drsDelete(hSession, hBaseProfile, SHARPEN_FILTER_VALUE);
-                                drsDelete(hSession, hBaseProfile, SHARPEN_FILTER_DENOISE);
-                                drsDelete(hSession, hBaseProfile, NIS_ENABLE);
-                                drsDelete(hSession, hBaseProfile, NIS_SHARPEN_VALUE);
-                            }
-                            else
-                            {
-                                SetDword(drsSet, hSession, hBaseProfile, SHARPEN_FILTER_EN, 0u);
-                                SetDword(drsSet, hSession, hBaseProfile, NIS_ENABLE, 0u);
-                            }
+                            Logger.Error($"NvAPI_DRS_LoadSettings 실패 (rc={rc})");
+                            return false;
                         }
 
-                        // 2. [타르코프 전용 격리 주입] "Escape from Tarkov" 엔비디아 공식 프로필에만 단독 적용
+                        // 타르코프 전용 격리 주입: "Escape from Tarkov" 엔비디아 공식 프로필에만 단독 적용
                         string[] tarkovProfiles = { "Escape from Tarkov", "Escape from Tarkov: Arena" };
                         uint isEnable = (sharpenPercent > 0) ? 1u : 0u;
-                        uint val = (uint)Math.Max(0, Math.Min(100, sharpenPercent));
+                        uint val = (uint)sharpenPercent;
+
+                        bool anyWritten = false;
+                        bool allOk = true;
 
                         foreach (var name in tarkovProfiles)
                         {
                             var uName = new NVAPI_UNICODE_STRING { Value = name };
-                            if (drsFind(hSession, ref uName, out IntPtr hTargetProfile) == 0 && hTargetProfile != IntPtr.Zero)
+                            int findRc = drsFind(hSession, ref uName, out IntPtr hTargetProfile);
+                            if (findRc != 0 || hTargetProfile == IntPtr.Zero)
                             {
-                                SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_EN, isEnable);
-                                SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_VALUE, val);
-                                SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_DENOISE, 15u);
-                                SetDword(drsSet, hSession, hTargetProfile, NIS_ENABLE, 0u);
+                                // Arena 프로필은 없을 수 있으므로 정보 수준으로만 기록
+                                Logger.Info($"DRS 프로필을 찾지 못했습니다: '{name}' (rc={findRc})");
+                                continue;
                             }
+
+                            allOk &= SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_EN, isEnable, "SHARPEN_FILTER_EN");
+                            allOk &= SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_VALUE, val, "SHARPEN_FILTER_VALUE");
+                            allOk &= SetDword(drsSet, hSession, hTargetProfile, SHARPEN_FILTER_DENOISE, 15u, "SHARPEN_FILTER_DENOISE");
+                            allOk &= SetDword(drsSet, hSession, hTargetProfile, NIS_ENABLE, 0u, "NIS_ENABLE");
+                            anyWritten = true;
                         }
 
-                        drsSave(hSession);
-                        return true;
+                        if (!anyWritten)
+                            return false;
+
+                        rc = drsSave(hSession);
+                        if (rc != 0)
+                        {
+                            Logger.Error($"NvAPI_DRS_SaveSettings 실패 (rc={rc}) - 관리자 권한이 필요하거나 드라이버가 거부했을 수 있습니다.");
+                            return false;
+                        }
+
+                        if (allOk)
+                        {
+                            _lastAppliedPercent = sharpenPercent;
+                            Logger.Info($"DRS 샤프닝 적용 완료: {sharpenPercent}%");
+                        }
+                        return allOk;
                     }
                     finally
                     {
@@ -157,13 +189,13 @@ namespace tarkov_settings.GPU
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[NvApiDrs Exception] {ex.Message}");
+                    Logger.Error("NvApiDrs 예외", ex);
                     return false;
                 }
             }
         }
 
-        private static void SetDword(NvAPI_DRS_SetSetting_t drsSet, IntPtr hSession, IntPtr hProfile, uint settingId, uint value)
+        private static bool SetDword(NvAPI_DRS_SetSetting_t drsSet, IntPtr hSession, IntPtr hProfile, uint settingId, uint value, string label)
         {
             var s = new NVDRS_SETTING
             {
@@ -172,7 +204,15 @@ namespace tarkov_settings.GPU
                 settingType = 0,
                 u32CurrentValue = value
             };
-            drsSet(hSession, hProfile, ref s);
+
+            int rc = drsSet(hSession, hProfile, ref s);
+            if (rc != 0)
+            {
+                // rc=-9 (NVAPI_INCOMPATIBLE_STRUCT_VERSION) 이면 NVDRS_SETTING 구조체 레이아웃/버전 상수 점검 필요
+                Logger.Error($"NvAPI_DRS_SetSetting 실패: {label} (rc={rc})");
+                return false;
+            }
+            return true;
         }
     }
 }

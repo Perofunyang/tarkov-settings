@@ -10,8 +10,8 @@ using System.Resources;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using tarkov_settings.Setting;
 using tarkov_settings.GPU;
+using tarkov_settings.Setting;
 
 namespace tarkov_settings
 {
@@ -23,6 +23,7 @@ namespace tarkov_settings
 
         private bool minimizeOnStart = false;
         private bool _isLoadingProfile = false;
+        private bool _displayInitDone = false;   // 생성자 초기화가 끝난 뒤의 디스플레이 변경만 "복원 후 재적용" 처리
 
         private const int COLLAPSED_WIDTH = 665;
         private const int EXPANDED_WIDTH = 1393;
@@ -78,7 +79,7 @@ namespace tarkov_settings
             _drsDebounceTimer.Tick += (s, e) =>
             {
                 _drsDebounceTimer.Stop();
-                if (gpu.Vendor == GPUVendor.NVIDIA)
+                if (gpu.Vendor == GPUVendor.NVIDIA && CurrentProfile != null && CurrentProfile.IsTarkovProfile)
                 {
                     int val = this.Sharpening;
                     Task.Run(() => NvApiDrsController.ApplySharpening(val));
@@ -137,8 +138,13 @@ namespace tarkov_settings
                 DisplayCombo.Items.Add(display);
             }
 
-            if (DisplayCombo.FindString(appSetting.display) != -1)
-                DisplayCombo.SelectedIndex = DisplayCombo.FindString(appSetting.display);
+            // FindString은 접두사 매칭이라 DISPLAY1 / DISPLAY10 을 혼동할 수 있으므로 정확 일치를 사용하고,
+            // 저장된 모니터가 없으면(분리/변경) 첫 번째 모니터로 대체
+            int savedDisplayIdx = DisplayCombo.FindStringExact(appSetting.display);
+            if (savedDisplayIdx != -1)
+                DisplayCombo.SelectedIndex = savedDisplayIdx;
+            else if (DisplayCombo.Items.Count > 0)
+                DisplayCombo.SelectedIndex = 0;
 
             Display.Primary = (string)DisplayCombo.SelectedItem;
             #endregion
@@ -148,6 +154,7 @@ namespace tarkov_settings
 
             pMonitor.Parent = this;
             pMonitor.Init();
+            _displayInitDone = true;
         }
 
         #region Expand / Collapse Preview Logic
@@ -578,31 +585,16 @@ namespace tarkov_settings
             if (string.IsNullOrEmpty(processName) || appSetting?.Profiles == null)
                 return null;
 
+            // 1순위: UI에서 선택 중인 프로필
             var current = CurrentProfile;
-            if (current != null && current.IsEnabled && current.TargetProcesses != null)
-            {
-                if (current.TargetProcesses.Any(target =>
-                {
-                    string cleanTarget = target.Replace(".exe", "").Trim();
-                    return string.Equals(cleanTarget, processName.Trim(), StringComparison.OrdinalIgnoreCase);
-                }))
-                {
-                    return current;
-                }
-            }
+            if (current != null && current.MatchesProcess(processName))
+                return current;
 
+            // 2순위: 나머지 프로필 중 대상 프로세스가 일치하는 첫 번째 프로필
             foreach (var profile in appSetting.Profiles)
             {
-                if (!profile.IsEnabled || profile.TargetProcesses == null)
-                    continue;
-
-                foreach (var target in profile.TargetProcesses)
-                {
-                    if (string.Equals(target.Trim(), processName.Trim(), StringComparison.OrdinalIgnoreCase))
-                    {
-                        return profile;
-                    }
-                }
+                if (profile.MatchesProcess(processName))
+                    return profile;
             }
             return null;
         }
@@ -669,12 +661,23 @@ namespace tarkov_settings
             _isLoadingProfile = false;
             if (_isPreviewExpanded) RenderAndRefreshPreview();
 
-            // 엔비디아 DRS 선명도 커밋
-            if (gpu.Vendor == GPUVendor.NVIDIA)
+            UpdateSharpenAvailability();
+
+            // 엔비디아 DRS 선명도 커밋 (타르코프 전용 프로필일 때만)
+            if (gpu.Vendor == GPUVendor.NVIDIA && profile.IsTarkovProfile)
             {
                 int sharpVal = profile.Sharpening;
                 Task.Run(() => NvApiDrsController.ApplySharpening(sharpVal));
             }
+        }
+
+        /// <summary>
+        /// 드라이버 샤프닝은 NVIDIA + 타르코프 프로필에서만 의미가 있으므로, 그 외에는 슬라이더를 비활성화합니다.
+        /// </summary>
+        private void UpdateSharpenAvailability()
+        {
+            if (panelSharpen == null) return;
+            panelSharpen.Enabled = gpu.Vendor == GPUVendor.NVIDIA && CurrentProfile != null && CurrentProfile.IsTarkovProfile;
         }
 
         private void ProfileComboBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -784,11 +787,12 @@ namespace tarkov_settings
 
             var processes = TargetProcessTextBox.Text
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(p => p.Trim().Replace(".exe", "")) // .exe 자동 제거
+                .Select(p => Profile.NormalizeProcessName(p)) // .exe(대소문자 무관) 자동 제거
                 .Where(p => !string.IsNullOrEmpty(p))
                 .ToList();
 
             CurrentProfile.TargetProcesses = processes;
+            UpdateSharpenAvailability();
             ScheduleSave();
         }
 
@@ -1012,7 +1016,16 @@ namespace tarkov_settings
                 ColorController.Instance.Gamma = GammaBar.Value / 100.0;
             }
             else if (trackBar.Equals(DVLBar))
+            {
                 DVLText.Text = DVLBar.Value.ToString();
+
+                // 게임이 포커스된 상태(예: 보조 모니터에서 조절)라면 즉시 반영. 그 외에는 다음 포커스 때 적용됩니다.
+                if (!_isLoadingProfile && ProcessMonitor.Instance.IsTargetFocused)
+                {
+                    try { ColorController.Instance.DVL = DVLBar.Value; }
+                    catch (Exception ex) { Logger.Error("채도(DVC) 실시간 적용 실패", ex); }
+                }
+            }
             else if (trackBar.Equals(BlackStabilizerBar))
             {
                 BlackStabilizerText.Text = BlackStabilizerBar.Value.ToString();
@@ -1069,11 +1082,31 @@ namespace tarkov_settings
         private void DisplayCombo_SelectedValueChanged(object sender, EventArgs e)
         {
             string selectedDisplay = (string)DisplayCombo.SelectedItem;
-            Display.Primary = selectedDisplay;
+
+            if (_displayInitDone && selectedDisplay != Display.Primary)
+            {
+                // 이전 모니터의 색상/채도를 먼저 원복해야, 새 모니터 기준으로 원본 램프를 다시 캡처할 수 있습니다.
+                var cc = ColorController.Instance;
+                bool wasFocused = ProcessMonitor.Instance.IsTargetFocused;
+
+                cc.ApplyColorSettings(reset: true);
+                cc.ResetDVL();
+
+                Display.Primary = selectedDisplay;
+                cc.Init();
+
+                if (wasFocused)
+                    ProcessMonitor.Instance.Reapply();
+            }
+            else
+            {
+                Display.Primary = selectedDisplay;
+            }
 
             if (Display.Primary != selectedDisplay)
             {
-                DisplayCombo.SelectedIndex = DisplayCombo.FindString(Display.Primary);
+                int idx = DisplayCombo.FindStringExact(Display.Primary);
+                if (idx != -1) DisplayCombo.SelectedIndex = idx;
             }
 
             ScheduleSave();
@@ -1111,7 +1144,7 @@ namespace tarkov_settings
             }
             else
             {
-                Console.WriteLine(e.CloseReason);
+                Logger.Info("종료: " + e.CloseReason);
                 this.trayIcon.Dispose();
                 pMonitor.Close();
             }

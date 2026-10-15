@@ -47,12 +47,9 @@ namespace tarkov_settings.GPU
                     case GPUVendor.AMD:
                         return new AMD(vendor);
 
-                    // 향후 인텔 Arc 지원 시 추가 영역
-                    // case GPUVendor.INTEL:
-                    //     return new Intel(vendor);
-
+                    // Intel / 기타: 채도·샤프닝 없이 감마 램프 기능만 사용
                     default:
-                        throw new NotImplementedException("지원되지 않는 그래픽 카드입니다.");
+                        return new NullGpu(vendor);
                 }
             });
 
@@ -63,6 +60,10 @@ namespace tarkov_settings.GPU
         /// </summary>
         private static GPUVendor DetectGPUVendor()
         {
+            // 하이브리드(Intel iGPU + NVIDIA dGPU) 노트북은 Intel 어댑터가 먼저 열거될 수 있으므로,
+            // 첫 매칭에서 바로 반환하지 않고 전체를 훑은 뒤 NVIDIA > AMD > Intel 순으로 우선합니다.
+            bool hasNvidia = false, hasAmd = false, hasIntel = false;
+
             try
             {
                 DISPLAY_DEVICE d = new DISPLAY_DEVICE();
@@ -71,25 +72,23 @@ namespace tarkov_settings.GPU
                 uint devNum = 0;
                 while (EnumDisplayDevices(null, devNum, ref d, 0))
                 {
-                    string deviceId = d.DeviceID.ToUpper();
+                    string deviceId = (d.DeviceID ?? string.Empty).ToUpperInvariant();
 
-                    // VEN_10DE = NVIDIA
-                    if (deviceId.Contains("VEN_10DE"))
-                        return GPUVendor.NVIDIA;
-
-                    // VEN_1002 = AMD
-                    if (deviceId.Contains("VEN_1002"))
-                        return GPUVendor.AMD;
-
-                    // VEN_8086 = INTEL
-                    if (deviceId.Contains("VEN_8086"))
-                        return GPUVendor.INTEL;
+                    if (deviceId.Contains("VEN_10DE")) hasNvidia = true;       // NVIDIA
+                    else if (deviceId.Contains("VEN_1002")) hasAmd = true;     // AMD
+                    else if (deviceId.Contains("VEN_8086")) hasIntel = true;   // INTEL
 
                     devNum++;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.Error("GPU 벤더 감지 실패", ex);
+            }
 
+            if (hasNvidia) return GPUVendor.NVIDIA;
+            if (hasAmd) return GPUVendor.AMD;
+            if (hasIntel) return GPUVendor.INTEL;
             return GPUVendor.ETC;
         }
     }

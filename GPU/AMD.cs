@@ -14,35 +14,22 @@ namespace tarkov_settings.GPU
             get => this._vendor;
         }
 
-        public int Saturation
-        {
-            get;set;
-        }
+        // AMD 채도는 아직 미지원: 호출되어도 예외 없이 무시합니다.
+        public int Saturation { get; set; }
 
-        int IGPU.MaxSaturation => throw new NotImplementedException();
-
-        int IGPU.MinSaturation => throw new NotImplementedException();
-
-        int IGPU.InitSaturation => throw new NotImplementedException();
+        public int MaxSaturation => 0;
+        public int MinSaturation => 0;
+        public int InitSaturation => 0;
 
         public AMD(GPUVendor vendor)
         {
             this._vendor = vendor;
         }
 
-        public void ResetSaturation()
-        {
-            throw new NotImplementedException();
-        }
+        public void ResetSaturation() { }
 
-        public void Load(string display)
-        {
-            throw new NotImplementedException();
-        }
+        public void Load(string display) { }
 
-        public void Close()
-        {
-            throw new NotImplementedException();
-        }
+        public void Close() { }
     }
 }

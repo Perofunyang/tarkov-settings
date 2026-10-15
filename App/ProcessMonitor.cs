@@ -13,6 +13,7 @@ namespace tarkov_settings
     static class NativeMethods
     {
         private const uint WINEVENT_OUTOFCONTEXT = 0;
+        private const uint WINEVENT_SKIPOWNPROCESS = 2;   // 이 앱 자신의 창 포커스 이벤트는 건너뜀 (폴링이 보완)
         private const uint EVENT_SYSTEM_FOREGROUND = 3;
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
@@ -27,7 +28,7 @@ namespace tarkov_settings
                 EVENT_SYSTEM_FOREGROUND,
                 IntPtr.Zero,
                 dele,
-                0, 0, WINEVENT_OUTOFCONTEXT | 2);
+                0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
         }
 
         public static void UnHook()
@@ -179,7 +180,7 @@ namespace tarkov_settings
             {
                 if (!_isTargetFocused || _currentFocusedProfileName != matchedProfile.Name)
                 {
-                    Console.WriteLine($"[pMonitor] Target Process IS focused: {activeTitle} (Profile: {matchedProfile.Name})");
+                    Logger.Info($"대상 프로세스 포커스: {activeTitle} (프로필: {matchedProfile.Name})");
                     _isTargetFocused = true;
                     _currentFocusedProfileName = matchedProfile.Name;
 
@@ -193,21 +194,31 @@ namespace tarkov_settings
                     cController.FoliagePop = matchedProfile.FoliagePop;
 
                     // [수정] UI 스레드 동기 호출을 백그라운드 비동기로 분리하여 알트탭 프리징 완전 제거
-                    if (gpu.Vendor == GPUVendor.NVIDIA)
+                    // 드라이버 샤프닝(DRS)은 타르코프 전용 프로필일 때만 적용 (다른 게임 프로필이 타르코프 설정을 덮어쓰지 않도록)
+                    if (gpu.Vendor == GPUVendor.NVIDIA && matchedProfile.IsTarkovProfile)
                     {
                         int sharpVal = matchedProfile.Sharpening;
                         System.Threading.Tasks.Task.Run(() => NvApiDrsController.ApplySharpening(sharpVal));
                     }
 
                     cController.ApplyColorSettings(reset: false);
-                    cController.DVL = matchedProfile.Saturation;
+
+                    try
+                    {
+                        cController.DVL = matchedProfile.Saturation;
+                    }
+                    catch (Exception ex)
+                    {
+                        // DVC 미지원/로드 실패 환경에서 포커스마다 예외 대화상자가 뜨는 것을 방지
+                        Logger.Error("채도(DVC) 적용 실패", ex);
+                    }
                 }
             }
             else
             {
                 if (_isTargetFocused)
                 {
-                    Console.WriteLine("[pMonitor] Target Process is NOT focused");
+                    Logger.Info("대상 프로세스 포커스 해제");
                     _isTargetFocused = false;
                     _currentFocusedProfileName = null;
 
@@ -215,6 +226,16 @@ namespace tarkov_settings
                     cController.ResetDVL();
                 }
             }
+        }
+
+        /// <summary>
+        /// 포커스 상태는 그대로인데 대상 디스플레이가 바뀌는 등, 현재 프로필을 처음부터 다시 적용해야 할 때 사용합니다.
+        /// </summary>
+        public void Reapply()
+        {
+            _isTargetFocused = false;
+            _currentFocusedProfileName = null;
+            OnFocusChangedInternal();
         }
 
         public void Close()
