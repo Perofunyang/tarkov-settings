@@ -872,61 +872,77 @@ namespace tarkov_settings
         public double Brightness
         {
             get => BrightnessBar != null ? BrightnessBar.Value : 50;
-            set { if (BrightnessBar != null) BrightnessBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
+            set { if (BrightnessBar != null) BrightnessBar.Value = (int)Math.Max(BrightnessBar.Minimum, Math.Min(BrightnessBar.Maximum, value)); }
         }
 
         public double Contrast
         {
             get => ContrastBar != null ? ContrastBar.Value : 50;
-            set { if (ContrastBar != null) ContrastBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
+            set { if (ContrastBar != null) ContrastBar.Value = (int)Math.Max(ContrastBar.Minimum, Math.Min(ContrastBar.Maximum, value)); }
         }
 
         public double Gamma
         {
-            get => GammaBar.Value / 100.0;
-            set => GammaBar.Value = (int)(value * 100);
+            get => GammaBar != null ? GammaBar.Value / 100.0 : 1.0;
+            set
+            {
+                if (GammaBar != null)
+                    GammaBar.Value = (int)Math.Max(GammaBar.Minimum, Math.Min(GammaBar.Maximum, value * 100));
+            }
         }
 
         public int DVL
         {
-            get => DVLBar.Value;
-            set => DVLBar.Value = value;
+            get => DVLBar != null ? DVLBar.Value : 0;
+            set
+            {
+                if (DVLBar != null)
+                    DVLBar.Value = Math.Max(DVLBar.Minimum, Math.Min(DVLBar.Maximum, value)); // [수정] 안전 클램핑
+            }
         }
 
         public double BlackStabilizer
         {
-            get => BlackStabilizerBar.Value;
-            set => BlackStabilizerBar.Value = (int)value;
+            get => BlackStabilizerBar != null ? BlackStabilizerBar.Value : 0;
+            set
+            {
+                if (BlackStabilizerBar != null)
+                    BlackStabilizerBar.Value = (int)Math.Max(BlackStabilizerBar.Minimum, Math.Min(BlackStabilizerBar.Maximum, value)); // [수정]
+            }
         }
 
         public double WhiteStabilizer
         {
-            get => WhiteStabilizerBar.Value;
-            set => WhiteStabilizerBar.Value = (int)value;
+            get => WhiteStabilizerBar != null ? WhiteStabilizerBar.Value : 0;
+            set
+            {
+                if (WhiteStabilizerBar != null)
+                    WhiteStabilizerBar.Value = (int)Math.Max(WhiteStabilizerBar.Minimum, Math.Min(WhiteStabilizerBar.Maximum, value)); // [수정]
+            }
         }
 
         public bool IsDynamicAdaptive
         {
-            get => DynamicAdaptiveCheckBox.Checked;
-            set => DynamicAdaptiveCheckBox.Checked = value;
+            get => DynamicAdaptiveCheckBox != null && DynamicAdaptiveCheckBox.Checked;
+            set { if (DynamicAdaptiveCheckBox != null) DynamicAdaptiveCheckBox.Checked = value; }
         }
 
         public double Dehaze
         {
             get => DehazeBar != null ? DehazeBar.Value : 0;
-            set { if (DehazeBar != null) DehazeBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
+            set { if (DehazeBar != null) DehazeBar.Value = (int)Math.Max(DehazeBar.Minimum, Math.Min(DehazeBar.Maximum, value)); }
         }
 
         public double FoliagePop
         {
             get => FoliageBar != null ? FoliageBar.Value : 0;
-            set { if (FoliageBar != null) FoliageBar.Value = (int)Math.Max(0, Math.Min(100, value)); }
+            set { if (FoliageBar != null) FoliageBar.Value = (int)Math.Max(FoliageBar.Minimum, Math.Min(FoliageBar.Maximum, value)); }
         }
 
         public int Sharpening
         {
             get => SharpenBar != null ? SharpenBar.Value : 0;
-            set { if (SharpenBar != null) SharpenBar.Value = Math.Max(0, Math.Min(100, value)); }
+            set { if (SharpenBar != null) SharpenBar.Value = Math.Max(SharpenBar.Minimum, Math.Min(SharpenBar.Maximum, value)); }
         }
         #endregion
 

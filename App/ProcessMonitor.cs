@@ -192,10 +192,11 @@ namespace tarkov_settings
                     cController.Dehaze = matchedProfile.Dehaze;
                     cController.FoliagePop = matchedProfile.FoliagePop;
 
-                    // 엔비디아 드라이버 선명도 주입
+                    // [수정] UI 스레드 동기 호출을 백그라운드 비동기로 분리하여 알트탭 프리징 완전 제거
                     if (gpu.Vendor == GPUVendor.NVIDIA)
                     {
-                        NvApiDrsController.ApplySharpening(matchedProfile.Sharpening);
+                        int sharpVal = matchedProfile.Sharpening;
+                        System.Threading.Tasks.Task.Run(() => NvApiDrsController.ApplySharpening(sharpVal));
                     }
 
                     cController.ApplyColorSettings(reset: false);

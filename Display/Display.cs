@@ -30,26 +30,37 @@ namespace tarkov_settings
 
         public readonly static List<string> displays;
         private static string _primary;
-
         public static string Primary
         {
             get => _primary;
             set
             {
-                if (displays.Contains(value))
+                // [수정] displays가 비어있거나 null이 들어올 경우의 방어 코드
+                if (!string.IsNullOrEmpty(value) && displays != null && displays.Contains(value))
                 {
                     _primary = value;
-                    
                 }
-                else
+                else if (displays != null && displays.Count > 0)
                 {
                     _primary = displays[0];
                 }
+                else
+                {
+                    _primary = @"\\.\DISPLAY1"; // 모니터 리스트가 일시적으로 비었을 때 안전 폴백
+                }
+
                 try
                 {
-                    gpu.Load(_primary);
+                    if (!string.IsNullOrEmpty(_primary) && gpu != null)
+                    {
+                        gpu.Load(_primary);
+                    }
                 }
                 catch (NotImplementedException) { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Display Load Error] {ex.Message}");
+                }
             }
         }
 

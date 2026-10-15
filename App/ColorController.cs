@@ -73,7 +73,13 @@ namespace tarkov_settings
                     Green = new ushort[256],
                     Blue = new ushort[256]
                 };
-                originalRamps = new RAMP();
+                // [수정] originalRamps에도 반드시 256개 배열을 1회 할당해야 마샬러가 네이티브 값을 정상 복사해옵니다.
+                originalRamps = new RAMP
+                {
+                    Red = new ushort[256],
+                    Green = new ushort[256],
+                    Blue = new ushort[256]
+                };
 
                 if (GetDeviceGammaRamp(hdc, ref originalRamps))
                 {

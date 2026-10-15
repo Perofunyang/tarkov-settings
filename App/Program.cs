@@ -34,8 +34,7 @@ namespace tarkov_settings
                         System.Windows.Forms.MessageBoxButtons.OK,
                         System.Windows.Forms.MessageBoxIcon.Error
                     );
-                System.Threading.Thread.Sleep(1000);
-                Application.Exit();
+                return; // [수정] Thread.Sleep과 Application.Exit()을 지우고 즉시 return하여 프로세스를 종료합니다.
             }
 
             // Open Main Form
